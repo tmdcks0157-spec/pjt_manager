@@ -116,6 +116,12 @@ export default function TodayPage() {
     for (const c of columns) { if (c.name === '완료') map[c.project_id] = c.id }
     return map
   }, [columns])
+  const firstColByProject = useMemo(() => {
+    const map: Record<string, string> = {}
+    const sorted = [...columns].sort((a, b) => a.order - b.order)
+    for (const c of sorted) { if (!map[c.project_id] && c.name !== '완료') map[c.project_id] = c.id }
+    return map
+  }, [columns])
   const projMap = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p])), [projects])
 
   const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d }, [])
@@ -173,6 +179,21 @@ export default function TodayPage() {
   }, [showIssueForm])
 
   // ── mutations ──
+  const undoneMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const firstColId = firstColByProject[task.project_id]
+      if (!firstColId) throw new Error('활성 컬럼 없음')
+      const { error } = await supabase.from('tasks')
+        .update({ status: firstColId, updated_at: new Date().toISOString() })
+        .eq('id', task.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['today-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+
   const doneMutation = useMutation({
     mutationFn: async (task: Task) => {
       const doneColId = doneColByProject[task.project_id]
@@ -500,7 +521,14 @@ export default function TodayPage() {
                       const completed = checklist.filter(i => i.completed).length
                       return (
                         <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
-                          <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+                          <button
+                            onClick={() => undoneMutation.mutate(task)}
+                            disabled={undoneMutation.isPending}
+                            title="완료 취소"
+                            className="shrink-0 text-green-400 hover:text-gray-300 transition-colors cursor-pointer"
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
                           <button
                             onClick={() => router.push(`/projects/${task.project_id}`)}
                             className="flex-1 text-left flex items-center gap-2 min-w-0"
