@@ -87,7 +87,7 @@ export default function DashboardPage() {
     },
   })
 
-  const { data: allTasks = [] } = useQuery<Task[]>({
+  const { data: allTasks = [] } = useQuery<Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]>({
     queryKey: ['all-tasks-dashboard'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -96,17 +96,16 @@ export default function DashboardPage() {
         .is('deleted_at', null)
         .eq('archived', false)
       if (error) throw error
-      return data
+      return (data ?? []) as Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]
     },
   })
 
-  // 프로젝트별 완료 컬럼 ID 파악용
-  const { data: allColumns = [] } = useQuery({
+  const { data: allColumns = [] } = useQuery<{ id: string; project_id: string; name: string }[]>({
     queryKey: ['all-columns-dashboard'],
     queryFn: async () => {
       const { data, error } = await supabase.from('columns').select('id, project_id, name')
       if (error) throw error
-      return data
+      return (data ?? []) as { id: string; project_id: string; name: string }[]
     },
   })
 
