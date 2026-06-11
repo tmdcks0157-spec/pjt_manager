@@ -7,7 +7,7 @@ import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem, Projec
 import {
   Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw,
   GripVertical, CalendarDays, Maximize2, CheckSquare, Square, Users,
-  Copy, FolderInput, ChevronUp, AlertCircle, Clock, Layers,
+  Copy, FolderInput, ChevronUp, AlertCircle, Clock, Layers, MoreHorizontal,
 } from 'lucide-react'
 import { use } from 'react'
 import {
@@ -402,6 +402,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
     } catch { return false }
   })
   const [showMoveModal, setShowMoveModal] = useState(false)
+  const [showCardMenu, setShowCardMenu] = useState(false)
 
   function toggleExpanded() {
     setExpanded(v => {
@@ -442,36 +443,65 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
         style={isDragOverlay ? undefined : style}
         {...listeners} {...attributes}
         onDoubleClick={e => { e.stopPropagation(); onOpenModal?.(task) }}
-        className={`rounded-lg p-3 shadow-sm border group cursor-grab active:cursor-grabbing ${
+        className={`relative rounded-lg p-3 shadow-sm border group cursor-grab active:cursor-grabbing ${
           isDragOverlay ? 'bg-white shadow-lg rotate-1 border-gray-100' :
           dueMeta ? `${dueMeta.cardClass}` : 'bg-white border-gray-100'
         }`}
       >
+        {/* 카드 액션 메뉴 */}
+        {!isDragOverlay && showCardMenu && (
+          <>
+            <div className="fixed inset-0 z-20" onPointerDown={e => { e.stopPropagation(); setShowCardMenu(false) }} />
+            <div className="absolute right-2 top-8 z-30 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-46 text-left overflow-hidden"
+              onPointerDown={e => e.stopPropagation()}>
+              <button onClick={() => { onOpenModal?.(task); setShowCardMenu(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
+                <Maximize2 size={13} className="text-blue-400" /> 열기
+              </button>
+              {columns.filter(c => c.id !== task.status).length > 0 && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  {columns.filter(c => c.id !== task.status).map(c => (
+                    <button key={c.id} onClick={() => { onMove?.(task, c.id); setShowCardMenu(false) }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
+                      <ChevronRight size={13} className="text-gray-400" /> {c.name}으로 이동
+                    </button>
+                  ))}
+                </>
+              )}
+              <div className="border-t border-gray-100 my-1" />
+              <button onClick={() => { onCopy?.(task); setShowCardMenu(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
+                <Copy size={13} className="text-green-500" /> 복사
+              </button>
+              <button onClick={() => { setShowMoveModal(true); setShowCardMenu(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
+                <FolderInput size={13} className="text-purple-500" /> 다른 프로젝트로 이동
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <button onClick={() => { onArchive?.(task.id); setShowCardMenu(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-amber-50 text-xs text-amber-600 transition-colors">
+                <Archive size={13} /> 보관
+              </button>
+              <button onClick={() => { onSoftDelete(task.id); setShowCardMenu(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-red-50 text-xs text-red-500 transition-colors">
+                <Trash2 size={13} /> 삭제
+              </button>
+            </div>
+          </>
+        )}
+
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-medium leading-snug flex-1">{task.title}</p>
           {!isDragOverlay && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-              <button onPointerDown={e => e.stopPropagation()} onClick={() => onOpenModal?.(task)}
-                className="p-0.5 text-gray-300 hover:text-blue-500 transition-colors" title="열기">
-                <Maximize2 size={13} />
-              </button>
-              <button onPointerDown={e => e.stopPropagation()} onClick={() => onCopy?.(task)}
-                className="p-0.5 text-gray-300 hover:text-green-500 transition-colors" title="복사">
-                <Copy size={13} />
-              </button>
-              <button onPointerDown={e => e.stopPropagation()} onClick={() => setShowMoveModal(true)}
-                className="p-0.5 text-gray-300 hover:text-purple-500 transition-colors" title="다른 프로젝트로 이동">
-                <FolderInput size={13} />
-              </button>
-              <button onPointerDown={e => e.stopPropagation()} onClick={() => onArchive?.(task.id)}
-                className="p-0.5 text-gray-300 hover:text-amber-500 transition-colors" title="보관">
-                <Archive size={13} />
-              </button>
-              <button onPointerDown={e => e.stopPropagation()} onClick={() => onSoftDelete(task.id)}
-                className="p-0.5 text-gray-300 hover:text-red-400 transition-colors" title="휴지통">
-                <Trash2 size={13} />
-              </button>
-            </div>
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); setShowCardMenu(v => !v) }}
+              className="p-0.5 text-gray-300 hover:text-gray-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+              title="더 보기"
+            >
+              <MoreHorizontal size={15} />
+            </button>
           )}
         </div>
 
@@ -552,17 +582,6 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
           </div>
         )}
 
-        {/* 같은 프로젝트 내 컬럼 이동 버튼 */}
-        {!isDragOverlay && onMove && (
-          <div className="flex flex-wrap gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            {columns.filter(c => c.id !== task.status).map(c => (
-              <button key={c.id} onPointerDown={e => e.stopPropagation()} onClick={() => onMove(task, c.id)}
-                className="text-xs px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
-                → {c.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </>
   )
@@ -599,9 +618,12 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const wipExceeded = column.wip_limit != null && tasks.length > column.wip_limit
 
+  // collapsed 상태에서도 드롭 가능하도록 outer div에 sort+drop ref 통합
+  function setOuterRef(el: HTMLDivElement | null) { setSortRef(el); setDropRef(el) }
+
   return (
-    <div ref={setSortRef} style={style} className="w-72 shrink-0 flex flex-col">
-      <div className="flex items-center justify-between mb-3 group/header">
+    <div ref={setOuterRef} style={style} className="w-72 shrink-0 flex flex-col">
+      <div className={`flex items-center justify-between mb-3 group/header rounded-xl px-1 transition-colors ${isOver && collapsed ? 'bg-gray-200/60' : ''}`}>
         <div className="flex items-center gap-1.5">
           <button {...listeners} {...attributes}
             className="cursor-grab active:cursor-grabbing p-0.5 text-gray-300 hover:text-gray-500 transition-colors touch-none">
@@ -637,7 +659,7 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
       </div>
 
       {!collapsed && (
-        <div ref={setDropRef} style={{ backgroundColor: column.color }}
+        <div style={{ backgroundColor: column.color }}
           className={`flex-1 rounded-xl p-2 space-y-2 min-h-32 transition-colors ${isOver ? 'ring-2 ring-gray-400 ring-offset-1' : ''}`}>
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map(task => (
