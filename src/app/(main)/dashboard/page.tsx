@@ -9,6 +9,48 @@ import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock
 
 const PROJECT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']
 
+interface ConfirmOptions {
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  onConfirm: () => void
+}
+
+function ConfirmModal({ options, onClose }: { options: ConfirmOptions; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-sm font-bold leading-snug">{options.title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0 mt-0.5"><X size={15} /></button>
+        </div>
+        {options.message && (
+          <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{options.message}</p>
+        )}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={() => { options.onConfirm(); onClose() }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+              options.danger
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'bg-gray-900 text-white hover:bg-gray-700'
+            }`}
+          >
+            {options.confirmText ?? '확인'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EditProjectModal({ project, onClose, onSave }: {
   project: Project
   onClose: () => void
@@ -74,11 +116,16 @@ export default function DashboardPage() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [color, setColor] = useState(PROJECT_COLORS[0])
   const [showArchived, setShowArchived] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
+
+  function openConfirm(options: ConfirmOptions) {
+    setConfirmOptions(options)
+  }
 
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['projects'],
@@ -176,7 +223,6 @@ export default function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
 
-  // 휴지통으로 이동 (soft delete)
   const softDeleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id)
@@ -185,7 +231,6 @@ export default function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
 
-  // 휴지통에서 복구
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('projects').update({ deleted_at: null }).eq('id', id)
@@ -194,7 +239,6 @@ export default function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
 
-  // 영구 삭제
   const permanentDeleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('projects').delete().eq('id', id)
@@ -245,8 +289,12 @@ export default function DashboardPage() {
             <button
               onClick={e => {
                 e.stopPropagation()
-                if (confirm(`"${project.name}" 프로젝트를 보관하시겠어요?\n보관된 프로젝트는 하단에서 확인할 수 있습니다.`))
-                  archiveMutation.mutate(project.id)
+                openConfirm({
+                  title: '프로젝트 보관',
+                  message: `"${project.name}" 프로젝트를 보관하시겠어요?\n보관된 프로젝트는 하단에서 확인할 수 있습니다.`,
+                  confirmText: '보관',
+                  onConfirm: () => archiveMutation.mutate(project.id),
+                })
               }}
               className="p-1 text-gray-400 hover:text-amber-500 transition-colors"
               title="보관"
@@ -265,8 +313,12 @@ export default function DashboardPage() {
           <button
             onClick={e => {
               e.stopPropagation()
-              if (confirm(`"${project.name}" 프로젝트를 휴지통으로 이동하시겠어요?`))
-                softDeleteMutation.mutate(project.id)
+              openConfirm({
+                title: '휴지통으로 이동',
+                message: `"${project.name}" 프로젝트를 휴지통으로 이동하시겠어요?`,
+                confirmText: '이동',
+                onConfirm: () => softDeleteMutation.mutate(project.id),
+              })
             }}
             className="p-1 text-gray-400 hover:text-red-500 transition-colors"
             title="휴지통으로 이동"
@@ -318,6 +370,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
+      {confirmOptions && (
+        <ConfirmModal options={confirmOptions} onClose={() => setConfirmOptions(null)} />
+      )}
       {editingProject && (
         <EditProjectModal
           project={editingProject}
@@ -492,18 +547,19 @@ export default function DashboardPage() {
                         <button
                           onClick={() => restoreMutation.mutate(project.id)}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="복구"
                         >
                           <RotateCcw size={13} />
                           복구
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`"${project.name}" 프로젝트를 영구 삭제하시겠어요?\n모든 태스크와 데이터가 삭제되며 복구할 수 없습니다.`))
-                              permanentDeleteMutation.mutate(project.id)
-                          }}
+                          onClick={() => openConfirm({
+                            title: '프로젝트 영구 삭제',
+                            message: `"${project.name}" 프로젝트를 영구 삭제하시겠어요?\n모든 태스크와 데이터가 삭제되며 복구할 수 없습니다.`,
+                            confirmText: '영구 삭제',
+                            danger: true,
+                            onConfirm: () => permanentDeleteMutation.mutate(project.id),
+                          })}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="영구 삭제"
                         >
                           <Trash2 size={13} />
                           영구삭제
