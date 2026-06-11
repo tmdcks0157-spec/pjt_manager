@@ -9,9 +9,10 @@ import type { Task, Project, ProjectColumn } from '@/types'
 import {
   Sun, Square, CalendarDays, Clock, Siren,
   Users, ChevronRight, CheckCircle2, CheckSquare,
-  Plus, MessageSquare, FileText, Send, ListTodo,
+  Plus, MessageSquare, FileText, ListTodo, BookOpen, AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import CreateTaskModal from '@/components/CreateTaskModal'
 
 const PRIORITY_META: Record<string, { label: string; className: string }> = {
   low:    { label: '낮음', className: 'bg-gray-100 text-gray-500' },
@@ -41,34 +42,22 @@ function fmtToday() {
   return new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 }
 
-type AddType = 'task' | 'meeting' | 'issue'
-
 export default function TodayPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  // ── 빠른 추가 상태 ──
-  const [addType, setAddType] = useState<AddType>('task')
-  const [addProjectId, setAddProjectId] = useState('')
-  const [addTitle, setAddTitle] = useState('')
-  const [addPostType, setAddPostType] = useState<'issue' | 'note'>('issue')
-  const [addPriority, setAddPriority] = useState<'low'|'normal'|'high'|'urgent'>('normal')
-  const [addDueDate, setAddDueDate] = useState(() => new Date().toISOString().split('T')[0])
-  const [addTags, setAddTags] = useState<string[]>([])
-  const [addTagInput, setAddTagInput] = useState('')
-  const [addBody, setAddBody] = useState('')
-  const titleInputRef = useRef<HTMLInputElement>(null)
+  // ── 모달/폼 상태 ──
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showIssueForm, setShowIssueForm] = useState(false)
+  const [issueProjectId, setIssueProjectId] = useState('')
+  const [issueTitle, setIssueTitle]         = useState('')
+  const [issuePostType, setIssuePostType]   = useState<'issue' | 'note'>('issue')
+  const [issuePriority, setIssuePriority]   = useState<'low'|'normal'|'high'|'urgent'>('normal')
+  const [issueBody, setIssueBody]           = useState('')
+  const issueTitleRef = useRef<HTMLInputElement>(null)
 
-  function resetForm() {
-    setAddTitle(''); setAddBody(''); setAddTags([]); setAddTagInput('')
-    setAddPriority('normal')
-    setAddDueDate(new Date().toISOString().split('T')[0])
-  }
-
-  function handleAddTag(raw: string) {
-    const t = raw.trim().toLowerCase()
-    if (t && !addTags.includes(t)) setAddTags(p => [...p, t])
-    setAddTagInput('')
+  function resetIssueForm() {
+    setIssueTitle(''); setIssueBody(''); setIssuePriority('normal')
   }
 
   // ── queries ──
@@ -126,12 +115,6 @@ export default function TodayPage() {
     for (const c of columns) { if (c.name === '완료') map[c.project_id] = c.id }
     return map
   }, [columns])
-  const firstColByProject = useMemo(() => {
-    const map: Record<string, string> = {}
-    const sorted = [...columns].sort((a, b) => a.order - b.order)
-    for (const c of sorted) { if (!map[c.project_id] && c.name !== '완료') map[c.project_id] = c.id }
-    return map
-  }, [columns])
   const projMap = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p])), [projects])
 
   const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d }, [])
@@ -159,7 +142,6 @@ export default function TodayPage() {
     return d > today
   }), [activeTasks, today])
 
-  // 오늘 등록된 태스크 (created_at 기준, 완료 포함)
   const todayCreatedTasks = useMemo(() =>
     tasks.filter(t => t.created_at >= todayStart && t.created_at <= todayEnd),
     [tasks, todayStart, todayEnd]
@@ -175,11 +157,13 @@ export default function TodayPage() {
 
   // 첫 프로젝트 기본 선택
   useEffect(() => {
-    if (projects.length > 0 && !addProjectId) setAddProjectId(projects[0].id)
-  }, [projects, addProjectId])
+    if (projects.length > 0 && !issueProjectId) setIssueProjectId(projects[0].id)
+  }, [projects, issueProjectId])
 
-  // 타입 변경 시 input 포커스
-  useEffect(() => { titleInputRef.current?.focus() }, [addType])
+  // 이슈 폼 열릴 때 포커스
+  useEffect(() => {
+    if (showIssueForm) setTimeout(() => issueTitleRef.current?.focus(), 50)
+  }, [showIssueForm])
 
   // ── mutations ──
   const doneMutation = useMutation({
@@ -196,67 +180,28 @@ export default function TodayPage() {
     },
   })
 
-  const createTaskMutation = useMutation({
-    mutationFn: async () => {
-      if (!addTitle.trim() || !addProjectId) return
-      const { data: { user } } = await supabase.auth.getUser()
-      const colId = firstColByProject[addProjectId]
-      if (!colId) throw new Error('컬럼 없음')
-      const { error } = await supabase.from('tasks').insert({
-        title: addTitle.trim(),
-        project_id: addProjectId,
-        user_id: user!.id,
-        status: colId,
-        task_type: addType === 'meeting' ? 'meeting' : 'task',
-        due_date: addDueDate ? new Date(addDueDate).toISOString() : null,
-        priority: addPriority,
-        tags: addTags,
-        archived: false,
-        order: 0,
-      })
-      if (error) throw error
-    },
-    onSuccess: () => {
-      resetForm()
-      queryClient.invalidateQueries({ queryKey: ['today-tasks'] })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      titleInputRef.current?.focus()
-    },
-  })
-
   const createPostMutation = useMutation({
     mutationFn: async () => {
-      if (!addTitle.trim() || !addProjectId) return
+      if (!issueTitle.trim() || !issueProjectId) return
       const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase.from('posts').insert({
-        title: addTitle.trim(),
-        body: addBody.trim() || null,
-        project_id: addProjectId,
+        title: issueTitle.trim(),
+        body: issueBody.trim() || null,
+        project_id: issueProjectId,
         user_id: user!.id,
-        type: addPostType,
+        type: issuePostType,
         status: 'open',
-        priority: addPostType === 'note' ? 'normal' : addPriority,
+        priority: issuePostType === 'note' ? 'normal' : issuePriority,
       })
       if (error) throw error
     },
     onSuccess: () => {
-      resetForm()
+      resetIssueForm()
+      setShowIssueForm(false)
       queryClient.invalidateQueries({ queryKey: ['today-posts', todayStart] })
-      titleInputRef.current?.focus()
     },
   })
 
-  function handleSubmit() {
-    if (!addTitle.trim() || !addProjectId) return
-    if (addType === 'issue') createPostMutation.mutate()
-    else createTaskMutation.mutate()
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() }
-  }
-
-  const isSubmitting = createTaskMutation.isPending || createPostMutation.isPending
   const totalToday = todayTasks.length + todayMeetings.length
   const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0
 
@@ -330,168 +275,115 @@ export default function TodayPage() {
         <h1 className="text-2xl font-bold text-gray-900">{getGreeting()}</h1>
       </div>
 
-      {/* ── 빠른 추가 폼 ── */}
-      <div className="bg-white border-2 border-gray-200 rounded-2xl p-5 mb-6 space-y-4">
-
-        {/* 상단: 타입 탭 + 프로젝트 선택 */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1.5">
-            {([
-              { key: 'task',    label: '태스크',   icon: <Plus size={12} /> },
-              { key: 'meeting', label: '일정',      icon: <Users size={12} /> },
-              { key: 'issue',   label: '이슈/기록', icon: <MessageSquare size={12} /> },
-            ] as { key: AddType; label: string; icon: React.ReactNode }[]).map(t => (
-              <button
-                key={t.key}
-                onClick={() => { setAddType(t.key); resetForm() }}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                  addType === t.key ? 'bg-gray-900 text-white border-gray-900' : 'text-gray-500 border-gray-200 hover:border-gray-400'
-                )}
-              >
-                {t.icon} {t.label}
-              </button>
-            ))}
-          </div>
-
-          <select
-            value={addProjectId}
-            onChange={e => setAddProjectId(e.target.value)}
-            className="ml-auto text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700"
+      {/* ── 빠른 추가 ── */}
+      <div className="mb-6 space-y-3">
+        {/* 액션 버튼 행 */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowTaskModal(true)}
+            className="flex-1 flex items-center gap-2.5 px-4 py-3.5 bg-white border-2 border-dashed border-gray-200 rounded-2xl hover:border-gray-900 hover:bg-gray-50 transition-all text-sm text-gray-400 hover:text-gray-700 group font-medium"
           >
-            {projects.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            <div className="w-6 h-6 rounded-lg bg-gray-100 group-hover:bg-gray-900 flex items-center justify-center transition-all">
+              <Plus size={13} className="text-gray-500 group-hover:text-white transition-colors" />
+            </div>
+            태스크 / 일정 추가
+          </button>
+
+          <button
+            onClick={() => { setShowIssueForm(p => !p); if (showIssueForm) resetIssueForm() }}
+            className={cn(
+              'flex-1 flex items-center gap-2.5 px-4 py-3.5 border-2 rounded-2xl transition-all text-sm font-medium',
+              showIssueForm
+                ? 'bg-gray-900 border-gray-900 text-white'
+                : 'bg-white border-dashed border-gray-200 hover:border-gray-900 hover:bg-gray-50 text-gray-400 hover:text-gray-700'
+            )}
+          >
+            <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center transition-all',
+              showIssueForm ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-gray-900')}>
+              <MessageSquare size={13} className={showIssueForm ? 'text-white' : 'text-gray-500'} />
+            </div>
+            이슈 / 기록 추가
+          </button>
         </div>
 
-        {/* 태스크 / 일정 폼 */}
-        {(addType === 'task' || addType === 'meeting') && (
-          <>
-            {/* 제목 */}
-            <input
-              ref={titleInputRef}
-              value={addTitle}
-              onChange={e => setAddTitle(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={addType === 'task' ? '태스크 제목 (필수)' : '일정 제목 (필수)'}
-              className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 focus:border-gray-800 pb-1.5 transition-colors bg-transparent"
-            />
-
-            {/* 우선순위 + 마감일 */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 shrink-0">우선순위</span>
-                {(['low','normal','high','urgent'] as const).map(p => (
-                  <button key={p} onClick={() => setAddPriority(p)}
-                    className={cn('px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all',
-                      PRIORITY_META[p].className,
-                      addPriority === p ? 'border-gray-500' : 'border-transparent'
-                    )}>
-                    {PRIORITY_META[p].label}
-                  </button>
-                ))}
+        {/* 이슈/기록 인라인 폼 */}
+        {showIssueForm && (
+          <div className="bg-white border-2 border-gray-200 rounded-2xl p-5 space-y-4">
+            {/* 프로젝트 + 타입 */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex gap-2">
+                <button onClick={() => setIssuePostType('issue')}
+                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
+                    issuePostType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'text-gray-500 border-gray-200 hover:border-gray-400')}>
+                  <AlertCircle size={11} /> 이슈
+                </button>
+                <button onClick={() => setIssuePostType('note')}
+                  className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
+                    issuePostType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-500 border-gray-200 hover:border-gray-400')}>
+                  <BookOpen size={11} /> 기록
+                </button>
               </div>
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs text-gray-400 shrink-0">마감일</span>
-                <input
-                  type="date"
-                  value={addDueDate}
-                  onChange={e => setAddDueDate(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50"
-                />
-              </div>
-            </div>
-
-            {/* 태그 */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-400 shrink-0">태그</span>
-              {addTags.map(tag => (
-                <span key={tag} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                  {tag}
-                  <button onClick={() => setAddTags(p => p.filter(t => t !== tag))} className="hover:text-red-500 transition-colors">×</button>
-                </span>
-              ))}
-              <input
-                value={addTagInput}
-                onChange={e => setAddTagInput(e.target.value)}
-                onKeyDown={e => {
-                  if ((e.key === 'Enter' || e.key === ',') && addTagInput.trim()) {
-                    e.preventDefault(); handleAddTag(addTagInput)
-                  }
-                }}
-                placeholder="태그 입력 후 Enter"
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 w-32"
-              />
-            </div>
-          </>
-        )}
-
-        {/* 이슈/기록 폼 */}
-        {addType === 'issue' && (
-          <>
-            {/* 이슈/기록 서브 타입 */}
-            <div className="flex gap-2">
-              <button onClick={() => setAddPostType('issue')}
-                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                  addPostType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'text-gray-500 border-gray-200 hover:border-gray-400')}>
-                <MessageSquare size={11} /> 이슈
-              </button>
-              <button onClick={() => setAddPostType('note')}
-                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                  addPostType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-500 border-gray-200 hover:border-gray-400')}>
-                <FileText size={11} /> 기록
-              </button>
+              <select
+                value={issueProjectId}
+                onChange={e => setIssueProjectId(e.target.value)}
+                className="ml-auto text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700"
+              >
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
             </div>
 
             {/* 제목 */}
             <input
-              ref={titleInputRef}
-              value={addTitle}
-              onChange={e => setAddTitle(e.target.value)}
-              placeholder={addPostType === 'issue' ? '이슈 제목 (필수)' : '기록 제목 (필수)'}
+              ref={issueTitleRef}
+              value={issueTitle}
+              onChange={e => setIssueTitle(e.target.value)}
+              placeholder={issuePostType === 'issue' ? '이슈 제목 (필수)' : '기록 제목 (필수)'}
               className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 focus:border-gray-800 pb-1.5 transition-colors bg-transparent"
             />
 
             {/* 본문 */}
             <textarea
-              value={addBody}
-              onChange={e => setAddBody(e.target.value)}
-              placeholder={addPostType === 'issue' ? '상세 내용 (선택)' : '내용 입력...'}
+              value={issueBody}
+              onChange={e => setIssueBody(e.target.value)}
+              placeholder={issuePostType === 'issue' ? '상세 내용 (선택)' : '내용 입력...'}
               rows={3}
               className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
             />
 
             {/* 우선순위 (이슈만) */}
-            {addPostType === 'issue' && (
+            {issuePostType === 'issue' && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-gray-400">우선순위</span>
                 {(['low','normal','high','urgent'] as const).map(p => (
-                  <button key={p} onClick={() => setAddPriority(p)}
+                  <button key={p} onClick={() => setIssuePriority(p)}
                     className={cn('px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all',
                       PRIORITY_META[p].className,
-                      addPriority === p ? 'border-gray-500' : 'border-transparent'
-                    )}>
+                      issuePriority === p ? 'border-gray-500' : 'border-transparent')}>
                     {PRIORITY_META[p].label}
                   </button>
                 ))}
               </div>
             )}
-          </>
-        )}
 
-        {/* 제출 */}
-        <div className="flex items-center justify-between pt-1">
-          <p className="text-xs text-gray-400">{addTitle.trim() ? '' : '제목을 입력해주세요'}</p>
-          <button
-            onClick={handleSubmit}
-            disabled={!addTitle.trim() || !addProjectId || isSubmitting}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-40 transition-all"
-          >
-            <Send size={13} />
-            {addType === 'task' ? '태스크 추가' : addType === 'meeting' ? '일정 추가' : addPostType === 'issue' ? '이슈 등록' : '기록 저장'}
-          </button>
-        </div>
+            {/* 액션 */}
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-gray-400">{issueTitle.trim() ? '' : '제목을 입력해주세요'}</p>
+              <div className="flex gap-2">
+                <button onClick={() => { setShowIssueForm(false); resetIssueForm() }}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                  취소
+                </button>
+                <button
+                  onClick={() => createPostMutation.mutate()}
+                  disabled={!issueTitle.trim() || createPostMutation.isPending}
+                  className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-40 transition-colors"
+                >
+                  {createPostMutation.isPending ? '저장 중...' : issuePostType === 'issue' ? '이슈 등록' : '기록 저장'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 통계 카드 */}
@@ -531,7 +423,7 @@ export default function TodayPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
-          {/* ── 왼쪽: 처리해야 할 것 ── */}
+          {/* ── 왼쪽: 처리할 것 ── */}
           <div className="space-y-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">처리할 것</p>
             <Section
@@ -575,7 +467,7 @@ export default function TodayPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">오늘 등록한 것</p>
 
             {/* 오늘 등록된 태스크 (프로젝트별) */}
-            {todayCreatedTasks.length > 0 ? (
+            {todayCreatedTasks.length > 0 && (
               <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                   <ListTodo size={14} className="text-green-500" />
@@ -635,10 +527,10 @@ export default function TodayPage() {
                   })}
                 </div>
               </div>
-            ) : null}
+            )}
 
             {/* 오늘 등록된 이슈/기록 */}
-            {todayPosts.length > 0 ? (
+            {todayPosts.length > 0 && (
               <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                   <MessageSquare size={14} className="text-purple-500" />
@@ -674,17 +566,28 @@ export default function TodayPage() {
                   })}
                 </div>
               </div>
-            ) : null}
+            )}
 
             {todayCreatedTasks.length === 0 && todayPosts.length === 0 && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
                 <Plus size={32} className="mx-auto mb-2 text-gray-200" />
-                <p className="text-sm">위 빠른 추가로 등록해보세요</p>
+                <p className="text-sm">위 버튼으로 등록해보세요</p>
               </div>
             )}
           </div>
 
         </div>
+      )}
+
+      {/* CreateTaskModal */}
+      {showTaskModal && (
+        <CreateTaskModal
+          projects={projects}
+          columns={columns}
+          defaultProjectId={issueProjectId || projects[0]?.id}
+          onClose={() => setShowTaskModal(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['today-tasks'] })}
+        />
       )}
     </div>
   )
