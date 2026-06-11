@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Project, Task } from '@/types'
-import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react'
+import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight, RotateCcw, Siren, TrendingUp } from 'lucide-react'
 
 const PROJECT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']
 
@@ -140,16 +140,16 @@ export default function DashboardPage() {
   const archivedProjects = useMemo(() => projects.filter(p => p.archived && !p.deleted_at), [projects])
   const deletedProjects = useMemo(() => projects.filter(p => !!p.deleted_at), [projects])
 
-  const { data: allTasks = [] } = useQuery<Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]>({
+  const { data: allTasks = [] } = useQuery<Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at' | 'priority'>[]>({
     queryKey: ['all-tasks-dashboard'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, project_id, status, due_date, archived, deleted_at')
+        .select('id, project_id, status, due_date, archived, deleted_at, priority')
         .is('deleted_at', null)
         .neq('archived', true)
       if (error) throw error
-      return (data ?? []) as Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]
+      return (data ?? []) as Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at' | 'priority'>[]
     },
   })
 
@@ -179,22 +179,28 @@ export default function DashboardPage() {
       return due.getTime() === today.getTime()
     }).length
 
-    return { total, done, overdue, dueToday }
+    const urgent = allTasks.filter(t => t.priority === 'urgent' && !doneColumnIds.has(t.status)).length
+    const high = allTasks.filter(t => t.priority === 'high' && !doneColumnIds.has(t.status)).length
+
+    return { total, done, overdue, dueToday, urgent, high }
   }, [allTasks, allColumns])
 
   const tasksByProject = useMemo(() => {
     const doneColumnIds = new Set(allColumns.filter(c => c.name === '완료').map(c => c.id))
     const today = new Date(); today.setHours(0, 0, 0, 0)
 
-    const map: Record<string, { total: number; done: number; overdue: number }> = {}
+    const map: Record<string, { total: number; done: number; overdue: number; urgent: number }> = {}
     for (const t of allTasks) {
-      if (!map[t.project_id]) map[t.project_id] = { total: 0, done: 0, overdue: 0 }
+      if (!map[t.project_id]) map[t.project_id] = { total: 0, done: 0, overdue: 0, urgent: 0 }
       map[t.project_id].total++
       if (doneColumnIds.has(t.status)) {
         map[t.project_id].done++
-      } else if (t.due_date) {
-        const due = new Date(t.due_date); due.setHours(0, 0, 0, 0)
-        if (due < today) map[t.project_id].overdue++
+      } else {
+        if (t.due_date) {
+          const due = new Date(t.due_date); due.setHours(0, 0, 0, 0)
+          if (due < today) map[t.project_id].overdue++
+        }
+        if (t.priority === 'urgent') map[t.project_id].urgent++
       }
     }
     return map
@@ -268,6 +274,7 @@ export default function DashboardPage() {
     const total = ps?.total ?? 0
     const done = ps?.done ?? 0
     const overdue = ps?.overdue ?? 0
+    const urgent = ps?.urgent ?? 0
     const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
     return (
@@ -332,6 +339,11 @@ export default function DashboardPage() {
           {isArchived && (
             <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-medium">보관됨</span>
           )}
+          {!isArchived && urgent > 0 && (
+            <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5">
+              <Siren size={10} />긴급 {urgent}
+            </span>
+          )}
         </div>
         <h3 className="font-semibold text-sm mb-1 truncate pr-12">{project.name}</h3>
         {project.description && (
@@ -383,14 +395,14 @@ export default function DashboardPage() {
 
       {/* 상단 요약 카드 */}
       {allTasks.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
               <Layers size={16} className="text-gray-500" />
             </div>
             <div>
               <p className="text-2xl font-bold leading-none">{stats.total}</p>
-              <p className="text-xs text-gray-400 mt-1">전체 태스크</p>
+              <p className="text-xs text-gray-400 mt-1">전체</p>
             </div>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
@@ -418,6 +430,24 @@ export default function DashboardPage() {
             <div>
               <p className="text-2xl font-bold leading-none">{stats.overdue}</p>
               <p className="text-xs text-gray-400 mt-1">기한 초과</p>
+            </div>
+          </div>
+          <div className={`border rounded-xl p-4 flex items-center gap-3 ${stats.urgent > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.urgent > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
+              <Siren size={16} className={stats.urgent > 0 ? 'text-red-500' : 'text-gray-400'} />
+            </div>
+            <div>
+              <p className={`text-2xl font-bold leading-none ${stats.urgent > 0 ? 'text-red-600' : ''}`}>{stats.urgent}</p>
+              <p className="text-xs text-gray-400 mt-1">긴급</p>
+            </div>
+          </div>
+          <div className={`border rounded-xl p-4 flex items-center gap-3 ${stats.high > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.high > 0 ? 'bg-orange-100' : 'bg-gray-100'}`}>
+              <TrendingUp size={16} className={stats.high > 0 ? 'text-orange-500' : 'text-gray-400'} />
+            </div>
+            <div>
+              <p className={`text-2xl font-bold leading-none ${stats.high > 0 ? 'text-orange-600' : ''}`}>{stats.high}</p>
+              <p className="text-xs text-gray-400 mt-1">높음</p>
             </div>
           </div>
         </div>

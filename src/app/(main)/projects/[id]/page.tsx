@@ -833,6 +833,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [newColName, setNewColName]         = useState('')
   const [newColColor, setNewColColor]       = useState(COLUMN_COLORS[0])
   const [filterPriority, setFilterPriority] = useState<TaskPriority | null>(null)
+  const [sortByPriority, setSortByPriority] = useState(false)
   const [searchQuery, setSearchQuery]       = useState('')
   const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null)
   const [collapsedCols, setCollapsedCols]   = useState<Set<string>>(() => {
@@ -912,12 +913,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     },
   })
 
+  const PRIORITY_ORDER: Record<TaskPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
   const q = searchQuery.trim().toLowerCase()
-  const activeTasks   = allTasks.filter(t =>
-    !t.archived && !t.deleted_at &&
-    (!filterPriority || t.priority === filterPriority) &&
-    (!q || t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
-  )
+  const activeTasks = (() => {
+    const filtered = allTasks.filter(t =>
+      !t.archived && !t.deleted_at &&
+      (!filterPriority || t.priority === filterPriority) &&
+      (!q || t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
+    )
+    if (!sortByPriority) return filtered
+    return [...filtered].sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+  })()
   const archivedTasks = allTasks.filter(t => t.archived && !t.deleted_at)
   const trashedTasks  = allTasks.filter(t => !!t.deleted_at)
 
@@ -1182,6 +1188,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <button onClick={() => setFilterPriority(null)}
                     className="text-xs px-2 py-1 rounded-full text-gray-400 hover:text-gray-700 transition-colors">초기화</button>
                 )}
+                <button
+                  onClick={() => setSortByPriority(prev => !prev)}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
+                    sortByPriority
+                      ? 'bg-gray-900 text-white border-transparent'
+                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                  }`}
+                  title="우선순위 높은 순으로 정렬"
+                >
+                  우선순위 정렬
+                </button>
               </div>
             </div>
           </div>
