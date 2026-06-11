@@ -375,7 +375,7 @@ export default function CalendarPage() {
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['all-tasks-calendar'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('tasks').select('*, checklist_items(*)').not('due_date', 'is', null).is('deleted_at', null).eq('archived', false)
+      const { data, error } = await supabase.from('tasks').select('*, checklist_items(*)').not('due_date', 'is', null).is('deleted_at', null).neq('archived', true)
       if (error) throw error; return data
     },
   })
