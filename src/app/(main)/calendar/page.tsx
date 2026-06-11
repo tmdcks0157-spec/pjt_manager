@@ -82,7 +82,24 @@ function getWeekSunday(date: Date): Date {
 
 // ───────── SidebarTaskCard ─────────
 function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      const stored: string[] = JSON.parse(localStorage.getItem('expanded-cal-cards') ?? '[]')
+      return stored.includes(task.id)
+    } catch { return false }
+  })
+
+  function toggleExpanded() {
+    setExpanded(v => {
+      const next = !v
+      try {
+        const stored = new Set<string>(JSON.parse(localStorage.getItem('expanded-cal-cards') ?? '[]'))
+        next ? stored.add(task.id) : stored.delete(task.id)
+        localStorage.setItem('expanded-cal-cards', JSON.stringify([...stored]))
+      } catch {}
+      return next
+    })
+  }
   const isMeeting = task.task_type === 'meeting'
   const dueStatus = isMeeting ? null : getDueStatus(task.due_date)
   const dueMeta = dueStatus ? DUE_STATUS_META[dueStatus] : null
@@ -132,7 +149,7 @@ function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
           </span>
         )}
         {hasExpandable && (
-          <button onClick={() => setExpanded(v => !v)}
+          <button onClick={toggleExpanded}
             className="text-gray-300 hover:text-gray-500 transition-colors ml-auto">
             {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
