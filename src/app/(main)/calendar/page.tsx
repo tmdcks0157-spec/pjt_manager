@@ -362,7 +362,6 @@ export default function CalendarPage() {
   const [draggingTask, setDraggingTask]     = useState<Task | null>(null)
   const [dragOverKey, setDragOverKey]       = useState<string | null>(null)
   const [noDueOpen, setNoDueOpen]           = useState(true)
-  const [showNoDueSidebar, setShowNoDueSidebar] = useState(false)
   const [summaryOpen, setSummaryOpen]       = useState(true)
   const [quickTaskDate, setQuickTaskDate]   = useState<string | null>(null)
 
@@ -940,10 +939,9 @@ export default function CalendarPage() {
                       <div key={task.id} draggable
                         onDragStart={() => setDraggingTask(task)}
                         onDragEnd={() => { setDraggingTask(null); setDragOverKey(null) }}
-                        onClick={() => { setShowNoDueSidebar(true); setSelectedDate(null) }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all select-none
-                          border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white
-                          ${draggingTask?.id === task.id ? 'opacity-40' : ''} cursor-pointer`}>
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50
+                          hover:border-gray-300 hover:bg-white cursor-grab active:cursor-grabbing select-none transition-all
+                          ${draggingTask?.id === task.id ? 'opacity-40' : ''}`}>
                         <span className={`w-2 h-2 rounded-full shrink-0 ${PRIORITY_DOT[task.priority]}`} />
                         <span className="text-xs text-gray-700 font-medium truncate max-w-[120px]">{task.title}</span>
                         {proj && (
@@ -962,51 +960,30 @@ export default function CalendarPage() {
         </div>
 
         {/* 사이드 패널 */}
-        {(selectedDate || showNoDueSidebar) && (
+        {selectedDate && (
           <div className="w-72 shrink-0 border-l border-gray-200 bg-white flex flex-col">
             <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                {selectedDate ? (
-                  <>
-                    <p className="text-sm font-bold text-gray-900">
-                      {selectedDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {selectedHoliday && <span className="text-red-400 mr-1">🎌 {selectedHoliday}</span>}
-                      일정 {selectedEvents.length}개 · 태스크 {selectedTasks.length}개
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-bold text-gray-900">마감일 없는 태스크</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{noDueTasks.length}개</p>
-                  </>
-                )}
+                <p className="text-sm font-bold text-gray-900">
+                  {selectedDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {selectedHoliday && <span className="text-red-400 mr-1">🎌 {selectedHoliday}</span>}
+                  일정 {selectedEvents.length}개 · 태스크 {selectedTasks.length}개
+                </p>
               </div>
               <div className="flex items-center gap-1">
-                {selectedDate && (
-                  <button onClick={() => { setEditingEvent(undefined); setShowEventModal(true) }}
-                    className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                    <Plus size={15} />
-                  </button>
-                )}
-                <button onClick={() => { setSelectedDate(null); setShowNoDueSidebar(false) }}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors">
+                <button onClick={() => { setEditingEvent(undefined); setShowEventModal(true) }}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Plus size={15} />
+                </button>
+                <button onClick={() => setSelectedDate(null)} className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={15} />
                 </button>
               </div>
             </div>
             <div className="flex-1 overflow-auto p-3 space-y-2">
-              {showNoDueSidebar ? (
-                noDueTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-gray-300">
-                    <CalendarDays size={28} />
-                    <p className="text-xs mt-2">마감일 없는 태스크가 없습니다</p>
-                  </div>
-                ) : noDueTasks.map(task => (
-                  <SidebarTaskCard key={task.id} task={task} proj={projectMap[task.project_id]} />
-                ))
-              ) : !selectedHoliday && selectedEvents.length === 0 && selectedTasks.length === 0 ? (
+              {!selectedHoliday && selectedEvents.length === 0 && selectedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-gray-300">
                   <CalendarDays size={28} />
                   <p className="text-xs mt-2">이 날의 일정이 없습니다</p>
