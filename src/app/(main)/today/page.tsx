@@ -9,7 +9,7 @@ import type { Task, Project, ProjectColumn } from '@/types'
 import {
   Sun, Square, CalendarDays, Clock, Siren,
   Users, ChevronRight, CheckCircle2, CheckSquare,
-  Plus, MessageSquare, FileText, ListTodo, BookOpen, AlertCircle,
+  Plus, MessageSquare, FileText, ListTodo, BookOpen, AlertCircle, Circle, RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import CreateTaskModal from '@/components/CreateTaskModal'
@@ -178,6 +178,14 @@ export default function TodayPage() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       queryClient.invalidateQueries({ queryKey: ['overview-tasks'] })
     },
+  })
+
+  const closeIssueMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'open' | 'closed' }) => {
+      const { error } = await supabase.from('posts').update({ status }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['today-posts', todayStart] }),
   })
 
   const createPostMutation = useMutation({
@@ -495,10 +503,20 @@ export default function TodayPage() {
                             const checklist = task.checklist_items ?? []
                             const completed = checklist.filter(i => i.completed).length
                             return (
-                              <div key={task.id} className="flex items-center gap-3 pl-8 pr-4 py-2.5 hover:bg-gray-50 transition-colors">
-                                {isDone
-                                  ? <CheckCircle2 size={14} className="text-green-400 shrink-0" />
-                                  : <Square size={14} className="text-gray-200 shrink-0" />}
+                              <div key={task.id} className="flex items-center gap-3 pl-8 pr-4 py-2.5 hover:bg-gray-50 transition-colors group/task">
+                                <button
+                                  onClick={() => !isDone && doneMutation.mutate(task)}
+                                  disabled={isDone || !doneColByProject[task.project_id]}
+                                  title={isDone ? '완료됨' : '완료 처리'}
+                                  className={cn('shrink-0 transition-colors',
+                                    !isDone && doneColByProject[task.project_id]
+                                      ? 'text-gray-300 hover:text-green-500 cursor-pointer'
+                                      : 'cursor-default')}
+                                >
+                                  {isDone
+                                    ? <CheckCircle2 size={14} className="text-green-400" />
+                                    : <Square size={14} />}
+                                </button>
                                 <button
                                   onClick={() => router.push(`/projects/${projectId}`)}
                                   className={cn('flex-1 text-left text-sm truncate',
@@ -541,17 +559,42 @@ export default function TodayPage() {
                   {todayPosts.map(post => {
                     const proj = projMap[post.project_id]
                     const isNote = post.type === 'note'
+                    const isClosed = post.status === 'closed'
                     return (
-                      <Link
-                        key={post.id}
-                        href={`/projects/${post.project_id}/issues`}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
-                      >
-                        {isNote
-                          ? <FileText size={14} className="text-purple-400 shrink-0" />
-                          : <MessageSquare size={14} className="text-blue-400 shrink-0" />}
-                        <span className="flex-1 text-sm text-gray-800 truncate">{post.title}</span>
+                      <div key={post.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                        {/* 이슈: 상태 토글 버튼 / 기록: 아이콘만 */}
+                        {isNote ? (
+                          <FileText size={14} className="text-purple-400 shrink-0" />
+                        ) : (
+                          <button
+                            onClick={() => closeIssueMutation.mutate({
+                              id: post.id,
+                              status: isClosed ? 'open' : 'closed',
+                            })}
+                            title={isClosed ? '이슈 다시 열기' : '이슈 닫기'}
+                            className="shrink-0 transition-colors"
+                          >
+                            {isClosed
+                              ? <CheckCircle2 size={14} className="text-green-400 hover:text-gray-400 transition-colors" />
+                              : <Circle size={14} className="text-gray-300 hover:text-green-500 transition-colors" />}
+                          </button>
+                        )}
+
+                        {/* 제목 — 클릭 시 이슈 페이지로 */}
+                        <Link
+                          href={`/projects/${post.project_id}/issues`}
+                          className={cn('flex-1 text-sm truncate hover:underline',
+                            isClosed ? 'line-through text-gray-400' : 'text-gray-800')}
+                        >
+                          {post.title}
+                        </Link>
+
                         <div className="flex items-center gap-1.5 shrink-0">
+                          {isClosed && (
+                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
+                              닫힘
+                            </span>
+                          )}
                           <span className={cn(
                             'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
                             isNote ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
@@ -559,9 +602,18 @@ export default function TodayPage() {
                             {isNote ? '기록' : '이슈'}
                           </span>
                           {proj && <span className="text-[10px] text-gray-400">{proj.name}</span>}
+                          {isClosed && (
+                            <button
+                              onClick={() => closeIssueMutation.mutate({ id: post.id, status: 'open' })}
+                              title="다시 열기"
+                              className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-blue-500 transition-all"
+                            >
+                              <RotateCcw size={11} />
+                            </button>
+                          )}
                           <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
                         </div>
-                      </Link>
+                      </div>
                     )
                   })}
                 </div>
