@@ -103,6 +103,8 @@ function TaskModal({ task, onClose, onUpdate }: {
   const [tags, setTags]             = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput]     = useState('')
   const [newItemText, setNewItemText] = useState('')
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemText, setEditingItemText] = useState('')
   const queryClient = useQueryClient()
 
   function addTag(raw: string) {
@@ -158,6 +160,23 @@ function TaskModal({ task, onClose, onUpdate }: {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
   })
+
+  const updateItemMutation = useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) => {
+      const { error } = await supabase.from('checklist_items').update({ text }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklist', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+
+  function commitItemEdit(id: string) {
+    const text = editingItemText.trim()
+    if (text) updateItemMutation.mutate({ id, text })
+    setEditingItemId(null)
+  }
 
   const completedCount = checklistItems.filter(i => i.completed).length
 
@@ -287,9 +306,28 @@ function TaskModal({ task, onClose, onUpdate }: {
                     className="shrink-0 text-gray-400 hover:text-green-500 transition-colors">
                     {item.completed ? <CheckSquare size={15} className="text-green-500" /> : <Square size={15} />}
                   </button>
-                  <span className={`text-sm flex-1 ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.text}</span>
+                  {editingItemId === item.id ? (
+                    <input
+                      autoFocus
+                      value={editingItemText}
+                      onChange={e => setEditingItemText(e.target.value)}
+                      onBlur={() => commitItemEdit(item.id)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') commitItemEdit(item.id)
+                        if (e.key === 'Escape') setEditingItemId(null)
+                      }}
+                      className="text-sm flex-1 focus:outline-none border-b border-gray-300 bg-transparent pb-0.5"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => { setEditingItemId(item.id); setEditingItemText(item.text) }}
+                      className={`text-sm flex-1 cursor-text ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
+                    >
+                      {item.text}
+                    </span>
+                  )}
                   <button onClick={() => deleteItemMutation.mutate(item.id)}
-                    className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-all">
+                    className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-all shrink-0">
                     <X size={12} />
                   </button>
                 </div>
@@ -444,6 +482,15 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
   })
   const [showMoveModal, setShowMoveModal] = useState(false)
   const [showCardMenu, setShowCardMenu] = useState(false)
+  const queryClient = useQueryClient()
+
+  const toggleChecklistMutation = useMutation({
+    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      const { error } = await supabase.from('checklist_items').update({ completed }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', task.project_id] }),
+  })
 
   function toggleExpanded() {
     setExpanded(v => {
@@ -599,9 +646,15 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
                 </div>
                 {checklist.slice(0, 4).map(item => (
                   <div key={item.id} className="flex items-center gap-1.5 text-xs">
-                    {item.completed
-                      ? <CheckSquare size={12} className="text-green-500 shrink-0" />
-                      : <Square size={12} className="text-gray-300 shrink-0" />}
+                    <button
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={e => { e.stopPropagation(); toggleChecklistMutation.mutate({ id: item.id, completed: !item.completed }) }}
+                      className="shrink-0 text-gray-400 hover:text-green-500 transition-colors"
+                    >
+                      {item.completed
+                        ? <CheckSquare size={12} className="text-green-500" />
+                        : <Square size={12} className="text-gray-300" />}
+                    </button>
                     <span className={item.completed ? 'line-through text-gray-400' : 'text-gray-600'}>{item.text}</span>
                   </div>
                 ))}
