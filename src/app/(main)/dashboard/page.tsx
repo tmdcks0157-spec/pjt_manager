@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Project, Task } from '@/types'
-import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react'
 
 const PROJECT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']
 
@@ -78,6 +78,7 @@ export default function DashboardPage() {
   const [description, setDescription] = useState('')
   const [color, setColor] = useState(PROJECT_COLORS[0])
   const [showArchived, setShowArchived] = useState(false)
+  const [showTrash, setShowTrash] = useState(false)
 
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['projects'],
@@ -88,8 +89,9 @@ export default function DashboardPage() {
     },
   })
 
-  const activeProjects = useMemo(() => projects.filter(p => !p.archived), [projects])
-  const archivedProjects = useMemo(() => projects.filter(p => p.archived), [projects])
+  const activeProjects = useMemo(() => projects.filter(p => !p.archived && !p.deleted_at), [projects])
+  const archivedProjects = useMemo(() => projects.filter(p => p.archived && !p.deleted_at), [projects])
+  const deletedProjects = useMemo(() => projects.filter(p => !!p.deleted_at), [projects])
 
   const { data: allTasks = [] } = useQuery<Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]>({
     queryKey: ['all-tasks-dashboard'],
@@ -174,7 +176,26 @@ export default function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
 
-  const deleteMutation = useMutation({
+  // 휴지통으로 이동 (soft delete)
+  const softDeleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+  })
+
+  // 휴지통에서 복구
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('projects').update({ deleted_at: null }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+  })
+
+  // 영구 삭제
+  const permanentDeleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('projects').delete().eq('id', id)
       if (error) throw error
@@ -244,11 +265,11 @@ export default function DashboardPage() {
           <button
             onClick={e => {
               e.stopPropagation()
-              if (confirm(`"${project.name}" 프로젝트를 완전히 삭제하시겠어요?\n모든 태스크와 데이터가 삭제되며 복구할 수 없습니다.`))
-                deleteMutation.mutate(project.id)
+              if (confirm(`"${project.name}" 프로젝트를 휴지통으로 이동하시겠어요?`))
+                softDeleteMutation.mutate(project.id)
             }}
             className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-            title="삭제"
+            title="휴지통으로 이동"
           >
             <Trash2 size={14} />
           </button>
@@ -405,7 +426,7 @@ export default function DashboardPage() {
 
       {isLoading ? (
         <p className="text-gray-400 text-sm">불러오는 중...</p>
-      ) : activeProjects.length === 0 && archivedProjects.length === 0 ? (
+      ) : activeProjects.length === 0 && archivedProjects.length === 0 && deletedProjects.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <FolderKanban size={40} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">프로젝트가 없습니다. 새 프로젝트를 만들어보세요!</p>
@@ -438,6 +459,57 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {archivedProjects.map(project => (
                     <ProjectCard key={project.id} project={project} isArchived />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 휴지통 섹션 */}
+          {deletedProjects.length > 0 && (
+            <div className="mt-10">
+              <button
+                onClick={() => setShowTrash(v => !v)}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-4"
+              >
+                {showTrash ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                <Trash2 size={14} />
+                휴지통
+                <span className="text-xs bg-red-50 text-red-400 px-1.5 py-0.5 rounded-full">{deletedProjects.length}</span>
+              </button>
+              {showTrash && (
+                <div className="space-y-2">
+                  {deletedProjects.map(project => (
+                    <div key={project.id} className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl group">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0 opacity-50" style={{ backgroundColor: project.color }} />
+                        <span className="text-sm text-gray-400 truncate line-through">{project.name}</span>
+                        {project.description && (
+                          <span className="text-xs text-gray-300 truncate hidden sm:block">{project.description}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-3">
+                        <button
+                          onClick={() => restoreMutation.mutate(project.id)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="복구"
+                        >
+                          <RotateCcw size={13} />
+                          복구
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`"${project.name}" 프로젝트를 영구 삭제하시겠어요?\n모든 태스크와 데이터가 삭제되며 복구할 수 없습니다.`))
+                              permanentDeleteMutation.mutate(project.id)
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="영구 삭제"
+                        >
+                          <Trash2 size={13} />
+                          영구삭제
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

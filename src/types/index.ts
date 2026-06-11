@@ -5,6 +5,7 @@ export interface Project {
   description: string
   color: string
   archived: boolean
+  deleted_at: string | null
   created_at: string
   updated_at: string
 }
