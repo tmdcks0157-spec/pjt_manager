@@ -757,9 +757,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   useEffect(() => {
     if (!colsReady || columns.length === 0) return
+    // 저장된 상태가 있으면 사용자 설정 유지 (첫 방문 시에만 완료 컬럼 자동 접기)
+    if (localStorage.getItem(`collapsed-${id}`) !== null) return
     setCollapsedCols(prev => {
       const next = new Set(prev)
-      columns.forEach(c => { if (c.name === '완료' && !next.has(c.id)) next.add(c.id) })
+      columns.forEach(c => { if (c.name === '완료') next.add(c.id) })
       localStorage.setItem(`collapsed-${id}`, JSON.stringify([...next]))
       return next
     })
