@@ -9,7 +9,7 @@ import type { Task, Project, ProjectColumn } from '@/types'
 import {
   Sun, Square, CalendarDays, Clock, Siren,
   Users, ChevronRight, CheckCircle2, CheckSquare,
-  Plus, MessageSquare, FileText, Send,
+  Plus, MessageSquare, FileText, Send, ListTodo,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -142,6 +142,20 @@ export default function TodayPage() {
     return d > today
   }), [activeTasks, today])
 
+  // 오늘 등록된 태스크 (created_at 기준, 완료 포함)
+  const todayCreatedTasks = useMemo(() =>
+    tasks.filter(t => t.created_at >= todayStart && t.created_at <= todayEnd),
+    [tasks, todayStart, todayEnd]
+  )
+  const todayCreatedByProject = useMemo(() => {
+    const map: Record<string, Task[]> = {}
+    for (const t of todayCreatedTasks) {
+      if (!map[t.project_id]) map[t.project_id] = []
+      map[t.project_id].push(t)
+    }
+    return map
+  }, [todayCreatedTasks])
+
   // 첫 프로젝트 기본 선택
   useEffect(() => {
     if (projects.length > 0 && !addProjectId) setAddProjectId(projects[0].id)
@@ -227,7 +241,7 @@ export default function TodayPage() {
 
   const isSubmitting = createTaskMutation.isPending || createPostMutation.isPending
   const totalToday = todayTasks.length + todayMeetings.length
-  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayPosts.length === 0
+  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0
 
   // ── sub-components ──
   function TaskRow({ task }: { task: Task }) {
@@ -443,6 +457,75 @@ export default function TodayPage() {
             tasks={urgentTasks}
             accent="text-red-600"
           />
+
+          {/* 오늘 등록된 태스크 (프로젝트별) */}
+          {todayCreatedTasks.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <ListTodo size={14} className="text-green-500" />
+                <span className="text-sm font-semibold text-green-600">오늘 등록한 태스크</span>
+                <span className="ml-auto text-xs text-gray-400 font-medium">{todayCreatedTasks.length}개</span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {Object.entries(todayCreatedByProject).map(([projectId, ptasks]) => {
+                  const proj = projMap[projectId]
+                  return (
+                    <div key={projectId}>
+                      {/* 프로젝트 구분 헤더 */}
+                      <button
+                        onClick={() => router.push(`/projects/${projectId}`)}
+                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj?.color ?? '#ccc' }} />
+                        <span className="text-xs font-semibold text-gray-600">{proj?.name ?? '알 수 없음'}</span>
+                        <span className="text-[10px] text-gray-400 ml-1">{ptasks.length}개</span>
+                        <ChevronRight size={11} className="ml-auto text-gray-300" />
+                      </button>
+                      {/* 태스크 목록 */}
+                      <div className="divide-y divide-gray-50">
+                        {ptasks.map(task => {
+                          const isDone = doneColIds.has(task.status)
+                          const pm = PRIORITY_META[task.priority]
+                          const checklist = task.checklist_items ?? []
+                          const completed = checklist.filter(i => i.completed).length
+                          return (
+                            <div key={task.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group pl-8">
+                              {isDone
+                                ? <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+                                : <Square size={14} className="text-gray-200 shrink-0" />}
+                              <button
+                                onClick={() => router.push(`/projects/${projectId}`)}
+                                className={cn('flex-1 text-left text-sm truncate',
+                                  isDone ? 'line-through text-gray-400' : 'text-gray-800')}
+                              >
+                                {task.title}
+                              </button>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {checklist.length > 0 && (
+                                  <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+                                    <CheckSquare size={10} /> {completed}/{checklist.length}
+                                  </span>
+                                )}
+                                {task.priority !== 'normal' && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${pm.className}`}>{pm.label}</span>
+                                )}
+                                {isDone && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">완료</span>
+                                )}
+                                {task.task_type === 'meeting' && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">일정</span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* 오늘 등록된 이슈/기록 */}
           {todayPosts.length > 0 && (
