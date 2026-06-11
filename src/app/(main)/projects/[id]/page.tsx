@@ -482,6 +482,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
   })
   const [showMoveModal, setShowMoveModal] = useState(false)
   const [showCardMenu, setShowCardMenu] = useState(false)
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null)
   const queryClient = useQueryClient()
 
   const toggleChecklistMutation = useMutation({
@@ -537,10 +538,12 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
         }`}
       >
         {/* 카드 액션 메뉴 */}
-        {!isDragOverlay && showCardMenu && (
+        {!isDragOverlay && showCardMenu && menuAnchor && (
           <>
-            <div className="fixed inset-0 z-20" onPointerDown={e => { e.stopPropagation(); setShowCardMenu(false) }} />
-            <div className="absolute right-2 top-8 z-30 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-46 text-left overflow-hidden"
+            <div className="fixed inset-0 z-40" onPointerDown={e => { e.stopPropagation(); setShowCardMenu(false) }} />
+            <div
+              style={{ position: 'fixed', top: menuAnchor.top, right: menuAnchor.right, zIndex: 50 }}
+              className="bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-44 text-left max-h-[70vh] overflow-y-auto"
               onPointerDown={e => e.stopPropagation()}>
               <button onClick={() => { onOpenModal?.(task); setShowCardMenu(false) }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
@@ -584,7 +587,14 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
           {!isDragOverlay && (
             <button
               onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); setShowCardMenu(v => !v) }}
+              onClick={e => {
+                e.stopPropagation()
+                if (!showCardMenu) {
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  setMenuAnchor({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+                }
+                setShowCardMenu(v => !v)
+              }}
               className="p-0.5 text-gray-300 hover:text-gray-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
               title="더 보기"
             >
