@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Task, Project, CalendarEvent, TaskPriority } from '@/types'
-import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react'
 import Link from 'next/link'
 
 // ───────── 공휴일 ─────────
@@ -41,6 +41,35 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 const EVENT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6']
 const MONTH_LABELS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
+const TAG_COLORS = [
+  'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700',
+  'bg-purple-100 text-purple-700', 'bg-pink-100 text-pink-700',
+  'bg-amber-100 text-amber-700', 'bg-teal-100 text-teal-700',
+  'bg-orange-100 text-orange-700', 'bg-indigo-100 text-indigo-700',
+]
+function tagColor(tag: string) {
+  let h = 0
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0
+  return TAG_COLORS[h % TAG_COLORS.length]
+}
+
+type DueStatus = 'overdue' | 'today' | 'tomorrow' | null
+function getDueStatus(dueDate: string | null): DueStatus {
+  if (!dueDate) return null
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const due = new Date(dueDate); due.setHours(0, 0, 0, 0)
+  const diff = Math.round((due.getTime() - today.getTime()) / 86400000)
+  if (diff < 0) return 'overdue'
+  if (diff === 0) return 'today'
+  if (diff === 1) return 'tomorrow'
+  return null
+}
+const DUE_STATUS_META = {
+  overdue:  { badgeClass: 'text-red-500',    label: '기한 초과' },
+  today:    { badgeClass: 'text-orange-500', label: '오늘 마감' },
+  tomorrow: { badgeClass: 'text-yellow-600', label: '내일 마감' },
+}
+
 function toDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
@@ -49,6 +78,104 @@ function getWeekSunday(date: Date): Date {
   d.setDate(d.getDate() - d.getDay())
   d.setHours(0, 0, 0, 0)
   return d
+}
+
+// ───────── SidebarTaskCard ─────────
+function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
+  const [expanded, setExpanded] = useState(false)
+  const isMeeting = task.task_type === 'meeting'
+  const dueStatus = isMeeting ? null : getDueStatus(task.due_date)
+  const dueMeta = dueStatus ? DUE_STATUS_META[dueStatus] : null
+  const checklist = task.checklist_items ?? []
+  const completedCount = checklist.filter(i => i.completed).length
+  const hasExpandable = !!task.description?.trim() || checklist.length > 0
+
+  return (
+    <div className={`p-3 rounded-xl border transition-colors ${isMeeting ? 'border-indigo-100 bg-indigo-50' : dueMeta ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-white'}`}>
+      {/* 제목 행 */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium text-gray-800 leading-snug flex-1">{task.title}</p>
+        <Link href={`/projects/${task.project_id}`}
+          className="text-gray-300 hover:text-blue-500 transition-colors shrink-0 mt-0.5">
+          <ExternalLink size={13} />
+        </Link>
+      </div>
+
+      {/* 배지 행 */}
+      <div className="flex items-center gap-2 mt-2 flex-wrap">
+        {isMeeting && (
+          <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-600">
+            <Users size={10} /> 미팅
+          </span>
+        )}
+        {!isMeeting && task.priority !== 'normal' && (
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_BADGE[task.priority]}`}>
+            {PRIORITY_LABEL[task.priority]}
+          </span>
+        )}
+        {task.due_date && (
+          <span className={`flex items-center gap-0.5 text-xs font-medium ${dueMeta ? dueMeta.badgeClass : 'text-gray-400'}`}>
+            <CalendarDays size={11} />
+            {dueMeta ? dueMeta.label : new Date(task.due_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+          </span>
+        )}
+        {checklist.length > 0 && (
+          <span className="flex items-center gap-0.5 text-xs text-gray-400">
+            <CheckSquare size={11} />
+            {completedCount}/{checklist.length}
+          </span>
+        )}
+        {proj && (
+          <span className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />
+            {proj.name}
+          </span>
+        )}
+        {hasExpandable && (
+          <button onClick={() => setExpanded(v => !v)}
+            className="text-gray-300 hover:text-gray-500 transition-colors ml-auto">
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        )}
+      </div>
+
+      {/* 펼쳐진 내용 */}
+      {expanded && (
+        <div className="mt-2 space-y-2 border-t border-gray-100 pt-2">
+          {task.description?.trim() && (
+            <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{task.description}</p>
+          )}
+          {checklist.length > 0 && (
+            <div className="space-y-1">
+              <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-400 rounded-full"
+                  style={{ width: `${(completedCount / checklist.length) * 100}%` }} />
+              </div>
+              {checklist.slice(0, 4).map(item => (
+                <div key={item.id} className="flex items-center gap-1.5 text-xs">
+                  {item.completed
+                    ? <CheckSquare size={12} className="text-green-500 shrink-0" />
+                    : <Square size={12} className="text-gray-300 shrink-0" />}
+                  <span className={item.completed ? 'line-through text-gray-400' : 'text-gray-600'}>{item.text}</span>
+                </div>
+              ))}
+              {checklist.length > 4 && <p className="text-xs text-gray-400 pl-4">+{checklist.length - 4}개 더</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 태그 */}
+      {task.tags && task.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {task.tags.slice(0, 3).map(t => (
+            <span key={t} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(t)}`}>{t}</span>
+          ))}
+          {task.tags.length > 3 && <span className="text-xs text-gray-400 self-center">+{task.tags.length - 3}</span>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ───────── QuickTaskModal ─────────
@@ -231,7 +358,7 @@ export default function CalendarPage() {
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['all-tasks-calendar'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('tasks').select('*').not('due_date', 'is', null).is('deleted_at', null).eq('archived', false)
+      const { data, error } = await supabase.from('tasks').select('*, checklist_items(*)').not('due_date', 'is', null).is('deleted_at', null).eq('archived', false)
       if (error) throw error; return data
     },
   })
@@ -869,38 +996,9 @@ export default function CalendarPage() {
                       {ev.description && <p className="text-xs text-gray-500 pl-4 line-clamp-2">{ev.description}</p>}
                     </div>
                   ))}
-                  {selectedTasks.map(task => {
-                    const proj = projectMap[task.project_id]
-                    const isMeeting = task.task_type === 'meeting'
-                    return (
-                      <div key={task.id} className={`p-3 rounded-xl border space-y-2 hover:border-gray-200 transition-colors ${isMeeting ? 'border-indigo-100 bg-indigo-50' : 'border-gray-100 bg-gray-50'}`}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                            {isMeeting && <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-medium shrink-0">미팅</span>}
-                            <p className="text-sm font-medium text-gray-800 leading-snug truncate">{task.title}</p>
-                          </div>
-                          <Link href={`/projects/${task.project_id}`}
-                            className="text-gray-300 hover:text-blue-500 transition-colors shrink-0 mt-0.5">
-                            <ExternalLink size={13} />
-                          </Link>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {!isMeeting && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_BADGE[task.priority]}`}>
-                              {PRIORITY_LABEL[task.priority]}
-                            </span>
-                          )}
-                          {proj && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500">
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: proj.color }} />
-                              {proj.name}
-                            </span>
-                          )}
-                        </div>
-                        {task.description && <p className="text-xs text-gray-400 line-clamp-2 whitespace-pre-line">{task.description}</p>}
-                      </div>
-                    )
-                  })}
+                  {selectedTasks.map(task => (
+                    <SidebarTaskCard key={task.id} task={task} proj={projectMap[task.project_id]} />
+                  ))}
                 </>
               )}
             </div>
