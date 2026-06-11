@@ -362,7 +362,7 @@ export default function CalendarPage() {
   const [draggingTask, setDraggingTask]     = useState<Task | null>(null)
   const [dragOverKey, setDragOverKey]       = useState<string | null>(null)
   const [noDueOpen, setNoDueOpen]           = useState(true)
-  const [selectedNoDueTask, setSelectedNoDueTask] = useState<Task | null>(null)
+  const [showNoDueSidebar, setShowNoDueSidebar] = useState(false)
   const [summaryOpen, setSummaryOpen]       = useState(true)
   const [quickTaskDate, setQuickTaskDate]   = useState<string | null>(null)
 
@@ -398,7 +398,7 @@ export default function CalendarPage() {
   const { data: noDueTasks = [] } = useQuery<Task[]>({
     queryKey: ['tasks-no-due'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('tasks').select('*').is('due_date', null).is('deleted_at', null).eq('archived', false).order('created_at')
+      const { data, error } = await supabase.from('tasks').select('*, checklist_items(*)').is('due_date', null).is('deleted_at', null).eq('archived', false).order('created_at')
       if (error) throw error; return data
     },
   })
@@ -940,9 +940,9 @@ export default function CalendarPage() {
                       <div key={task.id} draggable
                         onDragStart={() => setDraggingTask(task)}
                         onDragEnd={() => { setDraggingTask(null); setDragOverKey(null) }}
-                        onClick={() => { setSelectedNoDueTask(task); setSelectedDate(null) }}
+                        onClick={() => { setShowNoDueSidebar(true); setSelectedDate(null) }}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all select-none
-                          ${selectedNoDueTask?.id === task.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'}
+                          border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white
                           ${draggingTask?.id === task.id ? 'opacity-40' : ''} cursor-pointer`}>
                         <span className={`w-2 h-2 rounded-full shrink-0 ${PRIORITY_DOT[task.priority]}`} />
                         <span className="text-xs text-gray-700 font-medium truncate max-w-[120px]">{task.title}</span>
@@ -962,7 +962,7 @@ export default function CalendarPage() {
         </div>
 
         {/* 사이드 패널 */}
-        {(selectedDate || selectedNoDueTask) && (
+        {(selectedDate || showNoDueSidebar) && (
           <div className="w-72 shrink-0 border-l border-gray-200 bg-white flex flex-col">
             <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
@@ -977,7 +977,10 @@ export default function CalendarPage() {
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm font-bold text-gray-900">마감일 없는 태스크</p>
+                  <>
+                    <p className="text-sm font-bold text-gray-900">마감일 없는 태스크</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{noDueTasks.length}개</p>
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -987,15 +990,22 @@ export default function CalendarPage() {
                     <Plus size={15} />
                   </button>
                 )}
-                <button onClick={() => { setSelectedDate(null); setSelectedNoDueTask(null) }}
+                <button onClick={() => { setSelectedDate(null); setShowNoDueSidebar(false) }}
                   className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={15} />
                 </button>
               </div>
             </div>
             <div className="flex-1 overflow-auto p-3 space-y-2">
-              {selectedNoDueTask ? (
-                <SidebarTaskCard task={selectedNoDueTask} proj={projectMap[selectedNoDueTask.project_id]} />
+              {showNoDueSidebar ? (
+                noDueTasks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-gray-300">
+                    <CalendarDays size={28} />
+                    <p className="text-xs mt-2">마감일 없는 태스크가 없습니다</p>
+                  </div>
+                ) : noDueTasks.map(task => (
+                  <SidebarTaskCard key={task.id} task={task} proj={projectMap[task.project_id]} />
+                ))
               ) : !selectedHoliday && selectedEvents.length === 0 && selectedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-gray-300">
                   <CalendarDays size={28} />
