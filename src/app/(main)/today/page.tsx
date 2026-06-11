@@ -177,7 +177,9 @@ export default function TodayPage() {
     mutationFn: async (task: Task) => {
       const doneColId = doneColByProject[task.project_id]
       if (!doneColId) throw new Error('완료 컬럼 없음')
-      const { error } = await supabase.from('tasks').update({ status: doneColId }).eq('id', task.id)
+      const { error } = await supabase.from('tasks')
+        .update({ status: doneColId, updated_at: new Date().toISOString() })
+        .eq('id', task.id)
       if (error) throw error
     },
     onSuccess: () => {
