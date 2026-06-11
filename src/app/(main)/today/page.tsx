@@ -304,7 +304,7 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto">
       {/* 헤더 */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
@@ -327,16 +327,13 @@ export default function TodayPage() {
               onClick={() => setAddType(t.key)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                addType === t.key
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-500 hover:bg-gray-100'
+                addType === t.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
               )}
             >
               {t.icon} {t.label}
             </button>
           ))}
 
-          {/* 이슈/기록 서브 토글 */}
           {addType === 'issue' && (
             <div className="ml-auto flex gap-1">
               <button
@@ -362,7 +359,7 @@ export default function TodayPage() {
           <select
             value={addProjectId}
             onChange={e => setAddProjectId(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700 shrink-0 max-w-[130px]"
+            className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700 shrink-0 max-w-[140px]"
           >
             {projects.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -428,143 +425,161 @@ export default function TodayPage() {
           <p className="text-sm mt-1">여유로운 하루를 보내세요 😊</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <Section
-            title="오늘 일정"
-            icon={<Users size={14} className="text-indigo-500" />}
-            count={todayMeetings.length}
-            tasks={todayMeetings}
-            accent="text-indigo-600"
-          />
-          <Section
-            title="오늘 마감"
-            icon={<CalendarDays size={14} className="text-orange-500" />}
-            count={todayTasks.length}
-            tasks={todayTasks}
-            accent="text-orange-600"
-          />
-          <Section
-            title="기한 초과"
-            icon={<Clock size={14} className="text-red-500" />}
-            count={overdueTasks.length}
-            tasks={overdueTasks}
-            accent="text-red-600"
-          />
-          <Section
-            title="긴급 태스크"
-            icon={<Siren size={14} className="text-red-500" />}
-            count={urgentTasks.length}
-            tasks={urgentTasks}
-            accent="text-red-600"
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
-          {/* 오늘 등록된 태스크 (프로젝트별) */}
-          {todayCreatedTasks.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <ListTodo size={14} className="text-green-500" />
-                <span className="text-sm font-semibold text-green-600">오늘 등록한 태스크</span>
-                <span className="ml-auto text-xs text-gray-400 font-medium">{todayCreatedTasks.length}개</span>
+          {/* ── 왼쪽: 처리해야 할 것 ── */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">처리할 것</p>
+            <Section
+              title="오늘 일정"
+              icon={<Users size={14} className="text-indigo-500" />}
+              count={todayMeetings.length}
+              tasks={todayMeetings}
+              accent="text-indigo-600"
+            />
+            <Section
+              title="오늘 마감"
+              icon={<CalendarDays size={14} className="text-orange-500" />}
+              count={todayTasks.length}
+              tasks={todayTasks}
+              accent="text-orange-600"
+            />
+            <Section
+              title="기한 초과"
+              icon={<Clock size={14} className="text-red-500" />}
+              count={overdueTasks.length}
+              tasks={overdueTasks}
+              accent="text-red-600"
+            />
+            <Section
+              title="긴급 태스크"
+              icon={<Siren size={14} className="text-red-500" />}
+              count={urgentTasks.length}
+              tasks={urgentTasks}
+              accent="text-red-600"
+            />
+            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
+                <CheckCircle2 size={32} className="mx-auto mb-2 text-green-400" />
+                <p className="text-sm">처리할 항목이 없어요</p>
               </div>
-              <div className="divide-y divide-gray-100">
-                {Object.entries(todayCreatedByProject).map(([projectId, ptasks]) => {
-                  const proj = projMap[projectId]
-                  return (
-                    <div key={projectId}>
-                      {/* 프로젝트 구분 헤더 */}
-                      <button
-                        onClick={() => router.push(`/projects/${projectId}`)}
-                        className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj?.color ?? '#ccc' }} />
-                        <span className="text-xs font-semibold text-gray-600">{proj?.name ?? '알 수 없음'}</span>
-                        <span className="text-[10px] text-gray-400 ml-1">{ptasks.length}개</span>
-                        <ChevronRight size={11} className="ml-auto text-gray-300" />
-                      </button>
-                      {/* 태스크 목록 */}
-                      <div className="divide-y divide-gray-50">
-                        {ptasks.map(task => {
-                          const isDone = doneColIds.has(task.status)
-                          const pm = PRIORITY_META[task.priority]
-                          const checklist = task.checklist_items ?? []
-                          const completed = checklist.filter(i => i.completed).length
-                          return (
-                            <div key={task.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group pl-8">
-                              {isDone
-                                ? <CheckCircle2 size={14} className="text-green-400 shrink-0" />
-                                : <Square size={14} className="text-gray-200 shrink-0" />}
-                              <button
-                                onClick={() => router.push(`/projects/${projectId}`)}
-                                className={cn('flex-1 text-left text-sm truncate',
-                                  isDone ? 'line-through text-gray-400' : 'text-gray-800')}
-                              >
-                                {task.title}
-                              </button>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {checklist.length > 0 && (
-                                  <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
-                                    <CheckSquare size={10} /> {completed}/{checklist.length}
-                                  </span>
-                                )}
-                                {task.priority !== 'normal' && (
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${pm.className}`}>{pm.label}</span>
-                                )}
-                                {isDone && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">완료</span>
-                                )}
-                                {task.task_type === 'meeting' && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">일정</span>
-                                )}
+            )}
+          </div>
+
+          {/* ── 오른쪽: 오늘 등록한 것 ── */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">오늘 등록한 것</p>
+
+            {/* 오늘 등록된 태스크 (프로젝트별) */}
+            {todayCreatedTasks.length > 0 ? (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                  <ListTodo size={14} className="text-green-500" />
+                  <span className="text-sm font-semibold text-green-600">등록한 태스크</span>
+                  <span className="ml-auto text-xs text-gray-400 font-medium">{todayCreatedTasks.length}개</span>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {Object.entries(todayCreatedByProject).map(([projectId, ptasks]) => {
+                    const proj = projMap[projectId]
+                    return (
+                      <div key={projectId}>
+                        <button
+                          onClick={() => router.push(`/projects/${projectId}`)}
+                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj?.color ?? '#ccc' }} />
+                          <span className="text-xs font-semibold text-gray-600">{proj?.name ?? '알 수 없음'}</span>
+                          <span className="text-[10px] text-gray-400 ml-1">{ptasks.length}개</span>
+                          <ChevronRight size={11} className="ml-auto text-gray-300" />
+                        </button>
+                        <div className="divide-y divide-gray-50">
+                          {ptasks.map(task => {
+                            const isDone = doneColIds.has(task.status)
+                            const pm = PRIORITY_META[task.priority]
+                            const checklist = task.checklist_items ?? []
+                            const completed = checklist.filter(i => i.completed).length
+                            return (
+                              <div key={task.id} className="flex items-center gap-3 pl-8 pr-4 py-2.5 hover:bg-gray-50 transition-colors">
+                                {isDone
+                                  ? <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+                                  : <Square size={14} className="text-gray-200 shrink-0" />}
+                                <button
+                                  onClick={() => router.push(`/projects/${projectId}`)}
+                                  className={cn('flex-1 text-left text-sm truncate',
+                                    isDone ? 'line-through text-gray-400' : 'text-gray-800')}
+                                >
+                                  {task.title}
+                                </button>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {checklist.length > 0 && (
+                                    <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+                                      <CheckSquare size={10} /> {completed}/{checklist.length}
+                                    </span>
+                                  )}
+                                  {task.priority !== 'normal' && (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${pm.className}`}>{pm.label}</span>
+                                  )}
+                                  {isDone && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">완료</span>}
+                                  {task.task_type === 'meeting' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">일정</span>}
+                                </div>
                               </div>
-                            </div>
-                          )
-                        })}
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null}
 
-          {/* 오늘 등록된 이슈/기록 */}
-          {todayPosts.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <MessageSquare size={14} className="text-purple-500" />
-                <span className="text-sm font-semibold text-purple-600">오늘 이슈/기록</span>
-                <span className="ml-auto text-xs text-gray-400 font-medium">{todayPosts.length}개</span>
+            {/* 오늘 등록된 이슈/기록 */}
+            {todayPosts.length > 0 ? (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                  <MessageSquare size={14} className="text-purple-500" />
+                  <span className="text-sm font-semibold text-purple-600">이슈/기록</span>
+                  <span className="ml-auto text-xs text-gray-400 font-medium">{todayPosts.length}개</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {todayPosts.map(post => {
+                    const proj = projMap[post.project_id]
+                    const isNote = post.type === 'note'
+                    return (
+                      <Link
+                        key={post.id}
+                        href={`/projects/${post.project_id}/issues`}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
+                      >
+                        {isNote
+                          ? <FileText size={14} className="text-purple-400 shrink-0" />
+                          : <MessageSquare size={14} className="text-blue-400 shrink-0" />}
+                        <span className="flex-1 text-sm text-gray-800 truncate">{post.title}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                            isNote ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                          )}>
+                            {isNote ? '기록' : '이슈'}
+                          </span>
+                          {proj && <span className="text-[10px] text-gray-400">{proj.name}</span>}
+                          <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="divide-y divide-gray-50">
-                {todayPosts.map(post => {
-                  const proj = projMap[post.project_id]
-                  const isNote = post.type === 'note'
-                  return (
-                    <Link
-                      key={post.id}
-                      href={`/projects/${post.project_id}/issues`}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
-                    >
-                      {isNote
-                        ? <FileText size={14} className="text-purple-400 shrink-0" />
-                        : <MessageSquare size={14} className="text-blue-400 shrink-0" />}
-                      <span className="flex-1 text-sm text-gray-800 truncate">{post.title}</span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-                          isNote ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-                        )}>
-                          {isNote ? '기록' : '이슈'}
-                        </span>
-                        {proj && <span className="text-[10px] text-gray-400 hidden sm:block">{proj.name}</span>}
-                        <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-                      </div>
-                    </Link>
-                  )
-                })}
+            ) : null}
+
+            {todayCreatedTasks.length === 0 && todayPosts.length === 0 && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
+                <Plus size={32} className="mx-auto mb-2 text-gray-200" />
+                <p className="text-sm">위 빠른 추가로 등록해보세요</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
         </div>
       )}
     </div>
