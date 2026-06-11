@@ -7,8 +7,9 @@ import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem, Projec
 import {
   Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw,
   GripVertical, CalendarDays, Maximize2, CheckSquare, Square, Users,
-  Copy, FolderInput, ChevronUp, AlertCircle, Clock, Layers, MoreHorizontal,
+  Copy, FolderInput, ChevronUp, AlertCircle, Clock, Layers, MoreHorizontal, Siren, TrendingUp, BookOpen,
 } from 'lucide-react'
+import Link from 'next/link'
 import { use } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -971,7 +972,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       const d = new Date(t.due_date); d.setHours(0,0,0,0)
       return d.getTime() === today.getTime()
     }).length
-    return { total, done, overdue, dueToday }
+    const urgent = base.filter(t => t.priority === 'urgent' && !doneColIds.has(t.status)).length
+    const high   = base.filter(t => t.priority === 'high'   && !doneColIds.has(t.status)).length
+    return { total, done, overdue, dueToday, urgent, high }
   }, [allTasks, columns])
 
   const updateTaskMutation = useMutation({
@@ -1253,6 +1256,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="px-8 py-5 border-b border-gray-200 bg-white flex items-center gap-3 flex-wrap">
             {project && <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
             <h1 className="text-lg font-bold truncate">{project?.name ?? '...'}</h1>
+            <Link
+              href={`/projects/${id}/issues`}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors"
+            >
+              <BookOpen size={13} /> 이슈 & 기록
+            </Link>
             <div className="ml-auto flex items-center gap-3">
               <div className="relative">
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
@@ -1322,6 +1331,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               {summary.overdue > 0 && (
                 <span className="flex items-center gap-1.5 text-red-500">
                   <AlertCircle size={13} /> 기한 초과 <strong>{summary.overdue}</strong>
+                </span>
+              )}
+              {summary.urgent > 0 && (
+                <span className="flex items-center gap-1.5 text-red-600">
+                  <Siren size={13} /> 긴급 <strong>{summary.urgent}</strong>
+                </span>
+              )}
+              {summary.high > 0 && (
+                <span className="flex items-center gap-1.5 text-orange-500">
+                  <TrendingUp size={13} /> 높음 <strong>{summary.high}</strong>
                 </span>
               )}
               {summary.total > 0 && (
