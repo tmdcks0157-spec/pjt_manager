@@ -5,7 +5,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Project, Task } from '@/types'
-import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight, RotateCcw, Siren, TrendingUp } from 'lucide-react'
+import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight, RotateCcw, Siren, TrendingUp, ArrowDownAZ, ArrowUpDown } from 'lucide-react'
+
+type SortOrder = 'created' | 'updated' | 'progress' | 'name'
+
+const SORT_OPTIONS: { key: SortOrder; label: string }[] = [
+  { key: 'created',  label: '최신순' },
+  { key: 'updated',  label: '수정순' },
+  { key: 'progress', label: '진행률순' },
+  { key: 'name',     label: '이름순' },
+]
 
 const PROJECT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']
 
@@ -122,6 +131,7 @@ export default function DashboardPage() {
   const [color, setColor] = useState(PROJECT_COLORS[0])
   const [showArchived, setShowArchived] = useState(false)
   const [showTrash, setShowTrash] = useState(false)
+  const [sortOrder, setSortOrder] = useState<SortOrder>('created')
 
   function openConfirm(options: ConfirmOptions) {
     setConfirmOptions(options)
@@ -209,6 +219,25 @@ export default function DashboardPage() {
     }
     return map
   }, [allTasks, allColumns])
+
+  const sortedActiveProjects = useMemo(() => {
+    const arr = [...activeProjects]
+    switch (sortOrder) {
+      case 'updated':
+        return arr.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      case 'progress': {
+        const pct = (p: Project) => {
+          const ps = tasksByProject[p.id]
+          return ps && ps.total > 0 ? ps.done / ps.total : -1
+        }
+        return arr.sort((a, b) => pct(b) - pct(a))
+      }
+      case 'name':
+        return arr.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      default:
+        return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    }
+  }, [activeProjects, sortOrder, tasksByProject])
 
   const createMutation = useMutation({
     mutationFn: async (body: { name: string; description: string; color: string }) => {
@@ -457,8 +486,24 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">프로젝트</h1>
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <h1 className="text-xl font-bold mr-auto">프로젝트</h1>
+        <div className="flex items-center gap-1">
+          <ArrowUpDown size={13} className="text-gray-400 mr-0.5" />
+          {SORT_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setSortOrder(opt.key)}
+              className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
+                sortOrder === opt.key
+                  ? 'bg-gray-900 text-white border-transparent'
+                  : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
@@ -526,7 +571,7 @@ export default function DashboardPage() {
             <p className="text-gray-400 text-sm mb-6">활성 프로젝트가 없습니다.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeProjects.map(project => (
+              {sortedActiveProjects.map(project => (
                 <ProjectCard key={project.id} project={project} />
               ))}
             </div>
