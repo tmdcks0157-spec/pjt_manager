@@ -52,7 +52,24 @@ export default function TodayPage() {
   const [addProjectId, setAddProjectId] = useState('')
   const [addTitle, setAddTitle] = useState('')
   const [addPostType, setAddPostType] = useState<'issue' | 'note'>('issue')
+  const [addPriority, setAddPriority] = useState<'low'|'normal'|'high'|'urgent'>('normal')
+  const [addDueDate, setAddDueDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [addTags, setAddTags] = useState<string[]>([])
+  const [addTagInput, setAddTagInput] = useState('')
+  const [addBody, setAddBody] = useState('')
   const titleInputRef = useRef<HTMLInputElement>(null)
+
+  function resetForm() {
+    setAddTitle(''); setAddBody(''); setAddTags([]); setAddTagInput('')
+    setAddPriority('normal')
+    setAddDueDate(new Date().toISOString().split('T')[0])
+  }
+
+  function handleAddTag(raw: string) {
+    const t = raw.trim().toLowerCase()
+    if (t && !addTags.includes(t)) setAddTags(p => [...p, t])
+    setAddTagInput('')
+  }
 
   // ── queries ──
   const { data: projects = [] } = useQuery<Project[]>({
@@ -185,23 +202,22 @@ export default function TodayPage() {
       const { data: { user } } = await supabase.auth.getUser()
       const colId = firstColByProject[addProjectId]
       if (!colId) throw new Error('컬럼 없음')
-      const todayISO = new Date().toISOString().split('T')[0]
       const { error } = await supabase.from('tasks').insert({
         title: addTitle.trim(),
         project_id: addProjectId,
         user_id: user!.id,
         status: colId,
         task_type: addType === 'meeting' ? 'meeting' : 'task',
-        due_date: new Date(todayISO).toISOString(),
-        priority: 'normal',
-        tags: [],
+        due_date: addDueDate ? new Date(addDueDate).toISOString() : null,
+        priority: addPriority,
+        tags: addTags,
         archived: false,
         order: 0,
       })
       if (error) throw error
     },
     onSuccess: () => {
-      setAddTitle('')
+      resetForm()
       queryClient.invalidateQueries({ queryKey: ['today-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       titleInputRef.current?.focus()
@@ -214,16 +230,17 @@ export default function TodayPage() {
       const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase.from('posts').insert({
         title: addTitle.trim(),
+        body: addBody.trim() || null,
         project_id: addProjectId,
         user_id: user!.id,
         type: addPostType,
         status: 'open',
-        priority: 'normal',
+        priority: addPostType === 'note' ? 'normal' : addPriority,
       })
       if (error) throw error
     },
     onSuccess: () => {
-      setAddTitle('')
+      resetForm()
       queryClient.invalidateQueries({ queryKey: ['today-posts', todayStart] })
       titleInputRef.current?.focus()
     },
@@ -313,79 +330,166 @@ export default function TodayPage() {
         <h1 className="text-2xl font-bold text-gray-900">{getGreeting()}</h1>
       </div>
 
-      {/* ── 빠른 추가 바 ── */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-6 shadow-sm">
-        {/* 타입 탭 */}
-        <div className="flex gap-1 mb-3">
-          {([
-            { key: 'task',    label: '태스크',   icon: <Plus size={12} /> },
-            { key: 'meeting', label: '일정',      icon: <Users size={12} /> },
-            { key: 'issue',   label: '이슈/기록', icon: <MessageSquare size={12} /> },
-          ] as { key: AddType; label: string; icon: React.ReactNode }[]).map(t => (
-            <button
-              key={t.key}
-              onClick={() => setAddType(t.key)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                addType === t.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
-              )}
-            >
-              {t.icon} {t.label}
-            </button>
-          ))}
+      {/* ── 빠른 추가 폼 ── */}
+      <div className="bg-white border-2 border-gray-200 rounded-2xl p-5 mb-6 space-y-4">
 
-          {addType === 'issue' && (
-            <div className="ml-auto flex gap-1">
+        {/* 상단: 타입 탭 + 프로젝트 선택 */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-1.5">
+            {([
+              { key: 'task',    label: '태스크',   icon: <Plus size={12} /> },
+              { key: 'meeting', label: '일정',      icon: <Users size={12} /> },
+              { key: 'issue',   label: '이슈/기록', icon: <MessageSquare size={12} /> },
+            ] as { key: AddType; label: string; icon: React.ReactNode }[]).map(t => (
               <button
-                onClick={() => setAddPostType('issue')}
-                className={cn('px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
-                  addPostType === 'issue' ? 'bg-blue-100 text-blue-700' : 'text-gray-400 hover:bg-gray-100')}
+                key={t.key}
+                onClick={() => { setAddType(t.key); resetForm() }}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
+                  addType === t.key ? 'bg-gray-900 text-white border-gray-900' : 'text-gray-500 border-gray-200 hover:border-gray-400'
+                )}
               >
-                이슈
+                {t.icon} {t.label}
               </button>
-              <button
-                onClick={() => setAddPostType('note')}
-                className={cn('px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
-                  addPostType === 'note' ? 'bg-purple-100 text-purple-700' : 'text-gray-400 hover:bg-gray-100')}
-              >
-                기록
-              </button>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
 
-        {/* 입력 행 */}
-        <div className="flex gap-2">
           <select
             value={addProjectId}
             onChange={e => setAddProjectId(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700 shrink-0 max-w-[140px]"
+            className="ml-auto text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700"
           >
             {projects.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
+        </div>
 
-          <input
-            ref={titleInputRef}
-            value={addTitle}
-            onChange={e => setAddTitle(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              addType === 'task' ? '태스크 제목... (Enter로 추가)' :
-              addType === 'meeting' ? '일정 제목... (Enter로 추가)' :
-              `${addPostType === 'issue' ? '이슈' : '기록'} 제목... (Enter로 추가)`
-            }
-            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50"
-          />
+        {/* 태스크 / 일정 폼 */}
+        {(addType === 'task' || addType === 'meeting') && (
+          <>
+            {/* 제목 */}
+            <input
+              ref={titleInputRef}
+              value={addTitle}
+              onChange={e => setAddTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={addType === 'task' ? '태스크 제목 (필수)' : '일정 제목 (필수)'}
+              className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 focus:border-gray-800 pb-1.5 transition-colors bg-transparent"
+            />
 
+            {/* 우선순위 + 마감일 */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 shrink-0">우선순위</span>
+                {(['low','normal','high','urgent'] as const).map(p => (
+                  <button key={p} onClick={() => setAddPriority(p)}
+                    className={cn('px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all',
+                      PRIORITY_META[p].className,
+                      addPriority === p ? 'border-gray-500' : 'border-transparent'
+                    )}>
+                    {PRIORITY_META[p].label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs text-gray-400 shrink-0">마감일</span>
+                <input
+                  type="date"
+                  value={addDueDate}
+                  onChange={e => setAddDueDate(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50"
+                />
+              </div>
+            </div>
+
+            {/* 태그 */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-400 shrink-0">태그</span>
+              {addTags.map(tag => (
+                <span key={tag} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                  {tag}
+                  <button onClick={() => setAddTags(p => p.filter(t => t !== tag))} className="hover:text-red-500 transition-colors">×</button>
+                </span>
+              ))}
+              <input
+                value={addTagInput}
+                onChange={e => setAddTagInput(e.target.value)}
+                onKeyDown={e => {
+                  if ((e.key === 'Enter' || e.key === ',') && addTagInput.trim()) {
+                    e.preventDefault(); handleAddTag(addTagInput)
+                  }
+                }}
+                placeholder="태그 입력 후 Enter"
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 w-32"
+              />
+            </div>
+          </>
+        )}
+
+        {/* 이슈/기록 폼 */}
+        {addType === 'issue' && (
+          <>
+            {/* 이슈/기록 서브 타입 */}
+            <div className="flex gap-2">
+              <button onClick={() => setAddPostType('issue')}
+                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
+                  addPostType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'text-gray-500 border-gray-200 hover:border-gray-400')}>
+                <MessageSquare size={11} /> 이슈
+              </button>
+              <button onClick={() => setAddPostType('note')}
+                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
+                  addPostType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-500 border-gray-200 hover:border-gray-400')}>
+                <FileText size={11} /> 기록
+              </button>
+            </div>
+
+            {/* 제목 */}
+            <input
+              ref={titleInputRef}
+              value={addTitle}
+              onChange={e => setAddTitle(e.target.value)}
+              placeholder={addPostType === 'issue' ? '이슈 제목 (필수)' : '기록 제목 (필수)'}
+              className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 focus:border-gray-800 pb-1.5 transition-colors bg-transparent"
+            />
+
+            {/* 본문 */}
+            <textarea
+              value={addBody}
+              onChange={e => setAddBody(e.target.value)}
+              placeholder={addPostType === 'issue' ? '상세 내용 (선택)' : '내용 입력...'}
+              rows={3}
+              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+            />
+
+            {/* 우선순위 (이슈만) */}
+            {addPostType === 'issue' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-400">우선순위</span>
+                {(['low','normal','high','urgent'] as const).map(p => (
+                  <button key={p} onClick={() => setAddPriority(p)}
+                    className={cn('px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all',
+                      PRIORITY_META[p].className,
+                      addPriority === p ? 'border-gray-500' : 'border-transparent'
+                    )}>
+                    {PRIORITY_META[p].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 제출 */}
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-xs text-gray-400">{addTitle.trim() ? '' : '제목을 입력해주세요'}</p>
           <button
             onClick={handleSubmit}
             disabled={!addTitle.trim() || !addProjectId || isSubmitting}
-            className="flex items-center gap-1.5 px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-700 disabled:opacity-40 transition-all shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-40 transition-all"
           >
-            <Send size={12} />
-            추가
+            <Send size={13} />
+            {addType === 'task' ? '태스크 추가' : addType === 'meeting' ? '일정 추가' : addPostType === 'issue' ? '이슈 등록' : '기록 저장'}
           </button>
         </div>
       </div>
