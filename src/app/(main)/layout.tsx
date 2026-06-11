@@ -6,12 +6,13 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { LayoutDashboard, Calendar, LogOut, Search, X } from 'lucide-react'
+import { LayoutDashboard, Calendar, LogOut, Search, X, BarChart2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
   { href: '/calendar', label: '캘린더', icon: Calendar },
+  { href: '/report', label: '주간 리포트', icon: BarChart2 },
 ]
 
 interface SearchResult {
