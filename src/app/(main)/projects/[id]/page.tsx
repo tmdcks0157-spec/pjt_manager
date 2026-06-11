@@ -517,7 +517,8 @@ function TaskActionModal({ task, columns, onClose, onOpenModal, onMove, onCopy, 
 
 // ───────── TaskCard ─────────
 function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
-  onOpenModal, onCopy, onMoveToProject, isDragOverlay = false }: {
+  onOpenModal, onCopy, onMoveToProject, isDragOverlay = false,
+  selectionMode = false, isSelected = false, onToggleSelect }: {
   task: Task
   columns: ProjectColumn[]
   projects?: Project[]
@@ -529,6 +530,9 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
   onCopy?: (task: Task) => void
   onMoveToProject?: (task: Task, targetProjectId: string) => void
   isDragOverlay?: boolean
+  selectionMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id, disabled: isDragOverlay,
@@ -603,16 +607,30 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
       <div
         ref={setNodeRef}
         style={isDragOverlay ? undefined : style}
-        {...listeners} {...attributes}
-        onDoubleClick={e => { e.stopPropagation(); onOpenModal?.(task) }}
-        className={`relative rounded-lg p-3 shadow-sm border group cursor-grab active:cursor-grabbing ${
+        {...(selectionMode ? {} : { ...listeners, ...attributes })}
+        onClick={selectionMode ? () => onToggleSelect?.(task.id) : undefined}
+        onDoubleClick={selectionMode ? undefined : e => { e.stopPropagation(); onOpenModal?.(task) }}
+        className={`relative rounded-lg p-3 shadow-sm border group transition-all ${
+          selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
+        } ${
+          isSelected ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200' :
           isDragOverlay ? 'bg-white shadow-lg rotate-1 border-gray-100' :
           dueMeta ? `${dueMeta.cardClass}` : 'bg-white border-gray-100'
         }`}
       >
         <div className="flex items-start justify-between gap-2">
+          {selectionMode && !isDragOverlay && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onToggleSelect?.(task.id) }}
+              className="mt-0.5 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
+              style={{ borderColor: isSelected ? '#3b82f6' : '#d1d5db', backgroundColor: isSelected ? '#3b82f6' : 'white' }}
+            >
+              {isSelected && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
+            </button>
+          )}
           <p className="text-sm font-medium leading-snug flex-1">{task.title}</p>
-          {!isDragOverlay && (
+          {!isDragOverlay && !selectionMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); setShowActionModal(true) }}
@@ -715,7 +733,8 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
 // ───────── KanbanColumn ─────────
 function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
   onDeleteColumn, onOpenModal, onCopy, onMoveToProject, updateColumnMutation,
-  collapsed, onToggleCollapse, addingTo, setAddingTo, newTitle, setNewTitle, onAddTask }: {
+  collapsed, onToggleCollapse, addingTo, setAddingTo, newTitle, setNewTitle, onAddTask,
+  selectionMode, selectedIds, onToggleSelect }: {
   column: ProjectColumn
   tasks: Task[]
   columns: ProjectColumn[]
@@ -736,6 +755,9 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
   newTitle: string
   setNewTitle: (s: string) => void
   onAddTask: (columnId: string) => void
+  selectionMode: boolean
+  selectedIds: Set<string>
+  onToggleSelect: (id: string) => void
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: column.id })
   const { attributes, listeners, setNodeRef: setSortRef, transform, transition, isDragging: isColDragging } = useSortable({ id: `col:${column.id}` })
@@ -791,7 +813,10 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
               <TaskCard key={task.id} task={task} columns={columns}
                 projects={projects} currentProjectId={currentProjectId}
                 onSoftDelete={onSoftDelete} onMove={onMove} onArchive={onArchive}
-                onOpenModal={onOpenModal} onCopy={onCopy} onMoveToProject={onMoveToProject} />
+                onOpenModal={onOpenModal} onCopy={onCopy} onMoveToProject={onMoveToProject}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(task.id)}
+                onToggleSelect={onToggleSelect} />
             ))}
           </SortableContext>
 
@@ -835,6 +860,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [filterPriority, setFilterPriority] = useState<TaskPriority | null>(null)
   const [sortByPriority, setSortByPriority] = useState(false)
   const [searchQuery, setSearchQuery]       = useState('')
+  const [selectionMode, setSelectionMode]   = useState(false)
+  const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set())
   const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null)
   const [collapsedCols, setCollapsedCols]   = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(`collapsed-${id}`) ?? '[]')) }
@@ -962,6 +989,31 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', id] }),
   })
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, body }: { ids: string[]; body: Partial<Task> }) => {
+      const { error } = await supabase.from('tasks').update(body).in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', id] })
+      setSelectedIds(new Set())
+      setSelectionMode(false)
+    },
+  })
+
+  function toggleSelect(taskId: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId)
+      return next
+    })
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }
 
   const createTaskMutation = useMutation({
     mutationFn: async (body: Partial<Task>) => {
@@ -1155,6 +1207,46 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           onUpdate={(taskId, body) => updateTaskMutation.mutate({ taskId, body })} />
       )}
 
+      {/* 일괄 선택 액션 바 */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-2xl shadow-2xl">
+          <span className="text-sm font-medium mr-2">{selectedIds.size}개 선택됨</span>
+          <select
+            onChange={e => {
+              if (!e.target.value) return
+              bulkUpdateMutation.mutate({ ids: [...selectedIds], body: { status: e.target.value } })
+              e.target.value = ''
+            }}
+            defaultValue=""
+            className="text-xs bg-white text-gray-900 rounded-lg px-2 py-1.5 font-medium cursor-pointer"
+          >
+            <option value="" disabled>컬럼 이동</option>
+            {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <button
+            onClick={() => bulkUpdateMutation.mutate({ ids: [...selectedIds], body: { archived: true } })}
+            className="text-xs bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 font-medium transition-colors"
+          >
+            보관
+          </button>
+          <button
+            onClick={() => setConfirmOptions({
+              title: `${selectedIds.size}개 태스크 삭제`,
+              message: '선택한 태스크를 휴지통으로 이동할까요?',
+              confirmText: '이동',
+              danger: true,
+              onConfirm: () => bulkUpdateMutation.mutate({ ids: [...selectedIds], body: { deleted_at: new Date().toISOString() } }),
+            })}
+            className="text-xs bg-red-500 hover:bg-red-600 rounded-lg px-3 py-1.5 font-medium transition-colors"
+          >
+            삭제
+          </button>
+          <button onClick={exitSelectionMode} className="ml-1 text-gray-400 hover:text-white transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
         <div className="flex flex-col h-full">
           {/* 헤더 */}
@@ -1198,6 +1290,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   title="우선순위 높은 순으로 정렬"
                 >
                   우선순위 정렬
+                </button>
+                <button
+                  onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
+                    selectionMode
+                      ? 'bg-blue-600 text-white border-transparent'
+                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                  }`}
+                >
+                  {selectionMode ? '선택 취소' : '선택'}
                 </button>
               </div>
             </div>
@@ -1253,6 +1355,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     addingTo={addingTo} setAddingTo={setAddingTo}
                     newTitle={newTitle} setNewTitle={setNewTitle}
                     onAddTask={handleAddTask}
+                    selectionMode={selectionMode}
+                    selectedIds={selectedIds}
+                    onToggleSelect={toggleSelect}
                   />
                 ))}
               </SortableContext>
