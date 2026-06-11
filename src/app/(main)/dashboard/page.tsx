@@ -147,7 +147,7 @@ export default function DashboardPage() {
         .from('tasks')
         .select('id, project_id, status, due_date, archived, deleted_at, priority')
         .is('deleted_at', null)
-        .neq('archived', true)
+        .eq('archived', false)
       if (error) throw error
       return (data ?? []) as Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at' | 'priority'>[]
     },
@@ -179,28 +179,32 @@ export default function DashboardPage() {
       return due.getTime() === today.getTime()
     }).length
 
-    const urgent = allTasks.filter(t => t.priority === 'urgent' && !doneColumnIds.has(t.status)).length
-    const high = allTasks.filter(t => t.priority === 'high' && !doneColumnIds.has(t.status)).length
+    // allColumns 미로드 시 doneColumnIds가 빈 Set → 완료 태스크가 카운트에 포함되므로 방지
+    const colsReady = allColumns.length > 0
+    const urgent = colsReady ? allTasks.filter(t => t.priority === 'urgent' && !doneColumnIds.has(t.status)).length : 0
+    const high = colsReady ? allTasks.filter(t => t.priority === 'high' && !doneColumnIds.has(t.status)).length : 0
 
     return { total, done, overdue, dueToday, urgent, high }
   }, [allTasks, allColumns])
 
   const tasksByProject = useMemo(() => {
     const doneColumnIds = new Set(allColumns.filter(c => c.name === '완료').map(c => c.id))
+    const colsReady = allColumns.length > 0
     const today = new Date(); today.setHours(0, 0, 0, 0)
 
     const map: Record<string, { total: number; done: number; overdue: number; urgent: number }> = {}
     for (const t of allTasks) {
       if (!map[t.project_id]) map[t.project_id] = { total: 0, done: 0, overdue: 0, urgent: 0 }
       map[t.project_id].total++
-      if (doneColumnIds.has(t.status)) {
+      const isDone = colsReady && doneColumnIds.has(t.status)
+      if (isDone) {
         map[t.project_id].done++
       } else {
         if (t.due_date) {
           const due = new Date(t.due_date); due.setHours(0, 0, 0, 0)
           if (due < today) map[t.project_id].overdue++
         }
-        if (t.priority === 'urgent') map[t.project_id].urgent++
+        if (colsReady && t.priority === 'urgent') map[t.project_id].urgent++
       }
     }
     return map
