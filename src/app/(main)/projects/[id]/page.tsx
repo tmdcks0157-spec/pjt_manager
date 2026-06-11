@@ -997,7 +997,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (!newTitle.trim()) return
     createTaskMutation.mutate({
       title: newTitle.trim(), status: columnId,
-      project_id: id, priority: 'normal', task_type: 'task', tags: [], notes: '', order: activeTasks.length,
+      project_id: id, priority: 'normal', task_type: 'task', tags: [], notes: '', order: activeTasks.length, archived: false,
     })
   }
 

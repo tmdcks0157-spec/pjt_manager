@@ -94,7 +94,7 @@ export default function DashboardPage() {
         .from('tasks')
         .select('id, project_id, status, due_date, archived, deleted_at')
         .is('deleted_at', null)
-        .eq('archived', false)
+        .neq('archived', true)
       if (error) throw error
       return (data ?? []) as Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]
     },
