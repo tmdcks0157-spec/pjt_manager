@@ -47,6 +47,47 @@ function tagColor(tag: string) {
   return TAG_COLORS[h % TAG_COLORS.length]
 }
 
+// ───────── ConfirmModal ─────────
+interface ConfirmOptions {
+  title: string
+  message?: string
+  confirmText?: string
+  danger?: boolean
+  hideCancel?: boolean
+  onConfirm: () => void
+}
+
+function ConfirmModal({ options, onClose }: { options: ConfirmOptions; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-sm font-bold leading-snug">{options.title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0 mt-0.5"><X size={15} /></button>
+        </div>
+        {options.message && (
+          <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{options.message}</p>
+        )}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={() => { options.onConfirm(); onClose() }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+              options.danger ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-900 text-white hover:bg-gray-700'
+            }`}
+          >
+            {options.confirmText ?? '확인'}
+          </button>
+          {!options.hideCancel && (
+            <button onClick={onClose} className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              취소
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ───────── TaskModal ─────────
 function TaskModal({ task, onClose, onUpdate }: {
   task: Task
@@ -709,6 +750,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [newColColor, setNewColColor]       = useState(COLUMN_COLORS[0])
   const [filterPriority, setFilterPriority] = useState<TaskPriority | null>(null)
   const [searchQuery, setSearchQuery]       = useState('')
+  const [confirmOptions, setConfirmOptions] = useState<ConfirmOptions | null>(null)
   const [collapsedCols, setCollapsedCols]   = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(`collapsed-${id}`) ?? '[]')) }
     catch { return new Set() }
@@ -944,10 +986,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   function handleDeleteColumn(col: ProjectColumn) {
     const colTasks = activeTasks.filter(t => t.status === col.id)
     if (colTasks.length > 0) {
-      alert(`"${col.name}" 컬럼에 태스크가 ${colTasks.length}개 있습니다.\n태스크를 먼저 이동하거나 삭제해주세요.`)
+      setConfirmOptions({
+        title: '컬럼 삭제 불가',
+        message: `"${col.name}" 컬럼에 태스크가 ${colTasks.length}개 있습니다.\n태스크를 먼저 이동하거나 삭제해주세요.`,
+        confirmText: '확인',
+        hideCancel: true,
+        onConfirm: () => {},
+      })
       return
     }
-    if (confirm(`"${col.name}" 컬럼을 삭제하시겠어요?`)) deleteColumnMutation.mutate(col.id)
+    setConfirmOptions({
+      title: '컬럼 삭제',
+      message: `"${col.name}" 컬럼을 삭제하시겠어요?`,
+      confirmText: '삭제',
+      danger: true,
+      onConfirm: () => deleteColumnMutation.mutate(col.id),
+    })
   }
 
   function handleDragCancel() { setDraggingTask(null); setDraggingColumn(null) }
@@ -1003,6 +1057,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   return (
     <>
+      {confirmOptions && (
+        <ConfirmModal options={confirmOptions} onClose={() => setConfirmOptions(null)} />
+      )}
       {selectedTask && (
         <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)}
           onUpdate={(taskId, body) => updateTaskMutation.mutate({ taskId, body })} />
@@ -1180,7 +1237,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">
                             <RotateCcw size={13} />
                           </button>
-                          <button onClick={() => { if (confirm('영구 삭제하시겠어요?')) hardDeleteMutation.mutate(task.id) }}
+                          <button onClick={() => setConfirmOptions({
+                              title: '태스크 영구 삭제',
+                              message: `"${task.title}"\n영구 삭제하면 복구할 수 없습니다.`,
+                              confirmText: '영구 삭제',
+                              danger: true,
+                              onConfirm: () => hardDeleteMutation.mutate(task.id),
+                            })}
                             className="p-0.5 text-gray-400 hover:text-red-500 transition-colors" title="영구 삭제">
                             <X size={13} />
                           </button>
