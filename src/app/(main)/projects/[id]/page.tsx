@@ -548,7 +548,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
         {!isDragOverlay && expanded && (
           <div className="mt-2 space-y-2 border-t border-gray-100 pt-2">
             {hasDescription && (
-              <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed">{task.description}</p>
+              <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed whitespace-pre-line">{task.description}</p>
             )}
             {checklist.length > 0 && (
               <div className="space-y-1">

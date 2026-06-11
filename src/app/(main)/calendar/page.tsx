@@ -897,7 +897,7 @@ export default function CalendarPage() {
                             </span>
                           )}
                         </div>
-                        {task.description && <p className="text-xs text-gray-400 line-clamp-2">{task.description}</p>}
+                        {task.description && <p className="text-xs text-gray-400 line-clamp-2 whitespace-pre-line">{task.description}</p>}
                       </div>
                     )
                   })}
