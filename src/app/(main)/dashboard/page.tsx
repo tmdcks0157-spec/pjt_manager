@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Project, Task } from '@/types'
-import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers } from 'lucide-react'
+import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight } from 'lucide-react'
 
 const PROJECT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']
 
@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [color, setColor] = useState(PROJECT_COLORS[0])
+  const [showArchived, setShowArchived] = useState(false)
 
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['projects'],
@@ -86,6 +87,9 @@ export default function DashboardPage() {
       return data
     },
   })
+
+  const activeProjects = useMemo(() => projects.filter(p => !p.archived), [projects])
+  const archivedProjects = useMemo(() => projects.filter(p => p.archived), [projects])
 
   const { data: allTasks = [] } = useQuery<Pick<Task, 'id' | 'project_id' | 'status' | 'due_date' | 'archived' | 'deleted_at'>[]>({
     queryKey: ['all-tasks-dashboard'],
@@ -177,6 +181,119 @@ export default function DashboardPage() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('projects').update({ archived: true }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+  })
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('projects').update({ archived: false }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+  })
+
+  function ProjectCard({ project, isArchived = false }: { project: Project; isArchived?: boolean }) {
+    const ps = tasksByProject[project.id]
+    const total = ps?.total ?? 0
+    const done = ps?.done ?? 0
+    const overdue = ps?.overdue ?? 0
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0
+
+    return (
+      <div
+        onClick={() => !isArchived && router.push(`/projects/${project.id}`)}
+        className={`p-5 bg-white border border-gray-200 rounded-xl transition-all group relative ${isArchived ? 'opacity-70 cursor-default' : 'hover:shadow-md cursor-pointer'}`}
+      >
+        <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+          {!isArchived && (
+            <button
+              onClick={e => { e.stopPropagation(); setEditingProject(project) }}
+              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+              title="수정"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+          {!isArchived ? (
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                if (confirm(`"${project.name}" 프로젝트를 보관하시겠어요?\n보관된 프로젝트는 하단에서 확인할 수 있습니다.`))
+                  archiveMutation.mutate(project.id)
+              }}
+              className="p-1 text-gray-400 hover:text-amber-500 transition-colors"
+              title="보관"
+            >
+              <Archive size={14} />
+            </button>
+          ) : (
+            <button
+              onClick={e => { e.stopPropagation(); unarchiveMutation.mutate(project.id) }}
+              className="p-1 text-gray-400 hover:text-green-500 transition-colors"
+              title="보관 해제"
+            >
+              <ArchiveRestore size={14} />
+            </button>
+          )}
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              if (confirm(`"${project.name}" 프로젝트를 완전히 삭제하시겠어요?\n모든 태스크와 데이터가 삭제되며 복구할 수 없습니다.`))
+                deleteMutation.mutate(project.id)
+            }}
+            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+            title="삭제"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
+          {isArchived && (
+            <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-medium">보관됨</span>
+          )}
+        </div>
+        <h3 className="font-semibold text-sm mb-1 truncate pr-12">{project.name}</h3>
+        {project.description && (
+          <p className="text-xs text-gray-400 truncate mb-3">{project.description}</p>
+        )}
+
+        {total > 0 && (
+          <div className="mt-3 space-y-2">
+            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${pct}%`, backgroundColor: project.color }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">{done}/{total} 완료</span>
+              <div className="flex items-center gap-2">
+                {overdue > 0 && (
+                  <span className="text-xs text-red-500 font-medium flex items-center gap-0.5">
+                    <AlertCircle size={11} />
+                    {overdue}
+                  </span>
+                )}
+                <span className="text-xs text-gray-400">{pct}%</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {total === 0 && (
+          <p className="text-xs text-gray-300 mt-3">태스크 없음</p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -288,80 +405,45 @@ export default function DashboardPage() {
 
       {isLoading ? (
         <p className="text-gray-400 text-sm">불러오는 중...</p>
-      ) : projects.length === 0 ? (
+      ) : activeProjects.length === 0 && archivedProjects.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <FolderKanban size={40} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">프로젝트가 없습니다. 새 프로젝트를 만들어보세요!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map(project => {
-            const ps = tasksByProject[project.id]
-            const total = ps?.total ?? 0
-            const done = ps?.done ?? 0
-            const overdue = ps?.overdue ?? 0
-            const pct = total > 0 ? Math.round((done / total) * 100) : 0
+        <>
+          {activeProjects.length === 0 ? (
+            <p className="text-gray-400 text-sm mb-6">활성 프로젝트가 없습니다.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeProjects.map(project => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          )}
 
-            return (
-              <div
-                key={project.id}
-                onClick={() => router.push(`/projects/${project.id}`)}
-                className="p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md cursor-pointer transition-all group relative"
+          {/* 보관된 프로젝트 섹션 */}
+          {archivedProjects.length > 0 && (
+            <div className="mt-10">
+              <button
+                onClick={() => setShowArchived(v => !v)}
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-4"
               >
-                <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                  <button
-                    onClick={e => { e.stopPropagation(); setEditingProject(project) }}
-                    className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={e => {
-                      e.stopPropagation()
-                      if (confirm('프로젝트를 삭제하시겠어요?')) deleteMutation.mutate(project.id)
-                    }}
-                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                {showArchived ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                <Archive size={14} />
+                보관된 프로젝트
+                <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{archivedProjects.length}</span>
+              </button>
+              {showArchived && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {archivedProjects.map(project => (
+                    <ProjectCard key={project.id} project={project} isArchived />
+                  ))}
                 </div>
-
-                <div className="w-3 h-3 rounded-full mb-3" style={{ backgroundColor: project.color }} />
-                <h3 className="font-semibold text-sm mb-1 truncate pr-12">{project.name}</h3>
-                {project.description && (
-                  <p className="text-xs text-gray-400 truncate mb-3">{project.description}</p>
-                )}
-
-                {total > 0 && (
-                  <div className="mt-3 space-y-2">
-                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, backgroundColor: project.color }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">{done}/{total} 완료</span>
-                      <div className="flex items-center gap-2">
-                        {overdue > 0 && (
-                          <span className="text-xs text-red-500 font-medium flex items-center gap-0.5">
-                            <AlertCircle size={11} />
-                            {overdue}
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-400">{pct}%</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {total === 0 && (
-                  <p className="text-xs text-gray-300 mt-3">태스크 없음</p>
-                )}
-              </div>
-            )
-          })}
-        </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
