@@ -589,16 +589,16 @@ export default function TodayPage() {
                             return (
                               <div key={task.id} className="flex items-center gap-3 pl-8 pr-4 py-2.5 hover:bg-gray-50 transition-colors group/task">
                                 <button
-                                  onClick={() => !isDone && doneMutation.mutate(task)}
-                                  disabled={isDone || !doneColByProject[task.project_id]}
-                                  title={isDone ? '완료됨' : '완료 처리'}
-                                  className={cn('shrink-0 transition-colors',
-                                    !isDone && doneColByProject[task.project_id]
-                                      ? 'text-gray-300 hover:text-green-500 cursor-pointer'
-                                      : 'cursor-default')}
+                                  onClick={() => isDone ? undoneMutation.mutate(task) : doneMutation.mutate(task)}
+                                  disabled={isDone ? !firstColByProject[task.project_id] : !doneColByProject[task.project_id]}
+                                  title={isDone ? '완료 취소' : '완료 처리'}
+                                  className={cn('shrink-0 transition-colors cursor-pointer',
+                                    isDone
+                                      ? 'text-green-400 hover:text-gray-300'
+                                      : 'text-gray-300 hover:text-green-500')}
                                 >
                                   {isDone
-                                    ? <CheckCircle2 size={14} className="text-green-400" />
+                                    ? <CheckCircle2 size={14} />
                                     : <Square size={14} />}
                                 </button>
                                 <button
