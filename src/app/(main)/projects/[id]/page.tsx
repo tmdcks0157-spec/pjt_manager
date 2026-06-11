@@ -1,10 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem } from '@/types'
-import { Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw, GripVertical, CalendarDays, Maximize2, CheckSquare, Square, Users } from 'lucide-react'
+import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem, Project } from '@/types'
+import {
+  Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw,
+  GripVertical, CalendarDays, Maximize2, CheckSquare, Square, Users,
+  Copy, FolderInput, ChevronUp, AlertCircle, Clock, Layers,
+} from 'lucide-react'
 import { use } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -31,16 +35,11 @@ const PRIORITY_META: Record<TaskPriority, { label: string; className: string }> 
   urgent: { label: '긴급', className: 'bg-red-100 text-red-600' },
 }
 
-// ───────── tag color helper ─────────
 const TAG_COLORS = [
-  'bg-blue-100 text-blue-700',
-  'bg-green-100 text-green-700',
-  'bg-purple-100 text-purple-700',
-  'bg-pink-100 text-pink-700',
-  'bg-amber-100 text-amber-700',
-  'bg-teal-100 text-teal-700',
-  'bg-orange-100 text-orange-700',
-  'bg-indigo-100 text-indigo-700',
+  'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700',
+  'bg-purple-100 text-purple-700', 'bg-pink-100 text-pink-700',
+  'bg-amber-100 text-amber-700', 'bg-teal-100 text-teal-700',
+  'bg-orange-100 text-orange-700', 'bg-indigo-100 text-indigo-700',
 ]
 function tagColor(tag: string) {
   let h = 0
@@ -124,10 +123,7 @@ function TaskModal({ task, onClose, onUpdate }: {
   function handleSave() {
     onUpdate(task.id, {
       title:       title.trim() || task.title,
-      description: description,
-      notes:       notes,
-      priority:    priority,
-      task_type:   taskType,
+      description, notes, priority, task_type: taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,
       tags,
     })
@@ -138,7 +134,6 @@ function TaskModal({ task, onClose, onUpdate }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={handleSave} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
-        {/* 헤더 */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
           <input
             value={title}
@@ -183,21 +178,14 @@ function TaskModal({ task, onClose, onUpdate }: {
                 ))}
               </div>
             </div>
-
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-gray-400">{taskType === 'meeting' ? '일정 날짜' : '마감일'}</p>
               <div className="flex items-center gap-1.5">
                 <CalendarDays size={14} className="text-gray-400" />
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1"
-                />
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1" />
                 {dueDate && (
-                  <button onClick={() => setDueDate('')} className="text-gray-300 hover:text-gray-500">
-                    <X size={13} />
-                  </button>
+                  <button onClick={() => setDueDate('')} className="text-gray-300 hover:text-gray-500"><X size={13} /></button>
                 )}
               </div>
             </div>
@@ -206,13 +194,9 @@ function TaskModal({ task, onClose, onUpdate }: {
           {/* 설명 */}
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-gray-400">설명</p>
-            <textarea
-              value={description}
-              onChange={e => setDesc(e.target.value)}
-              placeholder="태스크에 대한 설명을 입력하세요..."
-              rows={3}
-              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
-            />
+            <textarea value={description} onChange={e => setDesc(e.target.value)}
+              placeholder="태스크에 대한 설명을 입력하세요..." rows={3}
+              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" />
           </div>
 
           {/* 태그 */}
@@ -222,71 +206,47 @@ function TaskModal({ task, onClose, onUpdate }: {
               {tags.map(t => (
                 <span key={t} className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${tagColor(t)}`}>
                   {t}
-                  <button onClick={() => removeTag(t)} className="hover:opacity-60 transition-opacity">
-                    <X size={10} />
-                  </button>
+                  <button onClick={() => removeTag(t)} className="hover:opacity-60"><X size={10} /></button>
                 </span>
               ))}
-              <input
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
+              <input value={tagInput} onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => {
-                  if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-                    e.preventDefault()
-                    addTag(tagInput)
-                  }
+                  if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) { e.preventDefault(); addTag(tagInput) }
                 }}
                 onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
                 placeholder="태그 입력 후 Enter..."
-                className="text-xs focus:outline-none text-gray-600 placeholder:text-gray-300 min-w-[120px] flex-1"
-              />
+                className="text-xs focus:outline-none text-gray-600 placeholder:text-gray-300 min-w-[120px] flex-1" />
             </div>
           </div>
 
           {/* 메모 */}
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-gray-400">메모</p>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="개인 메모..."
-              rows={3}
-              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none bg-gray-50"
-            />
+            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="개인 메모..." rows={3}
+              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none bg-gray-50" />
           </div>
 
           {/* 체크리스트 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-gray-400">체크리스트</p>
-              {checklistItems.length > 0 && (
-                <span className="text-xs text-gray-400">{completedCount}/{checklistItems.length}</span>
-              )}
+              {checklistItems.length > 0 && <span className="text-xs text-gray-400">{completedCount}/{checklistItems.length}</span>}
             </div>
-
-            {/* 진행률 바 */}
             {checklistItems.length > 0 && (
               <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-400 rounded-full transition-all"
-                  style={{ width: `${(completedCount / checklistItems.length) * 100}%` }}
-                />
+                <div className="h-full bg-green-400 rounded-full transition-all"
+                  style={{ width: `${(completedCount / checklistItems.length) * 100}%` }} />
               </div>
             )}
-
-            {/* 아이템 목록 */}
             <div className="space-y-1">
               {checklistItems.map(item => (
                 <div key={item.id} className="flex items-center gap-2 group/item">
                   <button onClick={() => toggleItemMutation.mutate({ id: item.id, completed: !item.completed })}
                     className="shrink-0 text-gray-400 hover:text-green-500 transition-colors">
-                    {item.completed
-                      ? <CheckSquare size={15} className="text-green-500" />
-                      : <Square size={15} />}
+                    {item.completed ? <CheckSquare size={15} className="text-green-500" /> : <Square size={15} />}
                   </button>
-                  <span className={`text-sm flex-1 ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                    {item.text}
-                  </span>
+                  <span className={`text-sm flex-1 ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.text}</span>
                   <button onClick={() => deleteItemMutation.mutate(item.id)}
                     className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-all">
                     <X size={12} />
@@ -294,37 +254,23 @@ function TaskModal({ task, onClose, onUpdate }: {
                 </div>
               ))}
             </div>
-
-            {/* 새 아이템 추가 */}
             <div className="flex items-center gap-2">
               <Square size={15} className="text-gray-200 shrink-0" />
-              <input
-                value={newItemText}
-                onChange={e => setNewItemText(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && newItemText.trim()) {
-                    addItemMutation.mutate(newItemText.trim())
-                  }
-                }}
+              <input value={newItemText} onChange={e => setNewItemText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && newItemText.trim()) addItemMutation.mutate(newItemText.trim()) }}
                 placeholder="항목 추가... (Enter)"
-                className="text-sm flex-1 focus:outline-none text-gray-600 placeholder:text-gray-300"
-              />
+                className="text-sm flex-1 focus:outline-none text-gray-600 placeholder:text-gray-300" />
               {newItemText.trim() && (
                 <button onClick={() => addItemMutation.mutate(newItemText.trim())}
-                  className="text-xs px-2 py-0.5 bg-gray-900 text-white rounded hover:bg-gray-700 transition-colors">
-                  추가
-                </button>
+                  className="text-xs px-2 py-0.5 bg-gray-900 text-white rounded hover:bg-gray-700 transition-colors">추가</button>
               )}
             </div>
           </div>
         </div>
 
-        {/* 푸터 */}
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
           <button onClick={handleSave}
-            className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
-            저장
-          </button>
+            className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">저장</button>
         </div>
       </div>
     </div>
@@ -333,17 +279,14 @@ function TaskModal({ task, onClose, onUpdate }: {
 
 // ───────── ColumnSettingsModal ─────────
 function ColumnSettingsModal({ column, onClose, onSave }: {
-  column: ProjectColumn
-  onClose: () => void
-  onSave: (name: string, limit: number | null) => void
+  column: ProjectColumn; onClose: () => void; onSave: (name: string, limit: number | null) => void
 }) {
   const [name, setName] = useState(column.name)
   const [wipValue, setWipValue] = useState(column.wip_limit?.toString() ?? '')
 
   function handleSave() {
-    const trimmed = name.trim() || column.name
     const num = parseInt(wipValue)
-    onSave(trimmed, isNaN(num) || num <= 0 ? null : num)
+    onSave(name.trim() || column.name, isNaN(num) || num <= 0 ? null : num)
     onClose()
   }
 
@@ -352,44 +295,60 @@ function ColumnSettingsModal({ column, onClose, onSave }: {
       <div className="bg-white rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-900">컬럼 설정</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={16} />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
         </div>
-
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-gray-500">컬럼 이름</label>
-          <input
-            autoFocus
-            value={name}
-            onChange={e => setName(e.target.value)}
+          <input autoFocus value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose() }}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-          />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" />
         </div>
-
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-gray-500">WIP 한도 <span className="text-gray-300 font-normal">(비우면 한도 없음)</span></label>
-          <input
-            type="number"
-            min="1"
-            value={wipValue}
-            onChange={e => setWipValue(e.target.value)}
+          <input type="number" min="1" value={wipValue} onChange={e => setWipValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose() }}
             placeholder="최대 태스크 수"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
-          />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" />
         </div>
-
         <div className="flex gap-2 pt-1">
           <button onClick={handleSave} disabled={!name.trim()}
-            className="flex-1 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">
-            저장
-          </button>
+            className="flex-1 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">저장</button>
           <button onClick={onClose}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-            취소
-          </button>
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">취소</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ───────── MoveToProjectModal ─────────
+function MoveToProjectModal({ task, projects, currentProjectId, onClose, onMove }: {
+  task: Task
+  projects: Project[]
+  currentProjectId: string
+  onClose: () => void
+  onMove: (task: Task, targetProjectId: string) => void
+}) {
+  const others = projects.filter(p => p.id !== currentProjectId)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-80 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold">다른 프로젝트로 이동</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+        </div>
+        <p className="text-xs text-gray-400 truncate">"{task.title}"을(를) 이동할 프로젝트 선택</p>
+        <div className="space-y-1.5 max-h-60 overflow-auto">
+          {others.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">다른 프로젝트가 없습니다</p>
+          ) : others.map(p => (
+            <button key={p.id} onClick={() => { onMove(task, p.id); onClose() }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left">
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+              <span className="text-sm font-medium text-gray-800 truncate">{p.name}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -411,131 +370,203 @@ function getDueStatus(dueDate: string | null): DueStatus {
 }
 
 const DUE_STATUS_META: Record<NonNullable<DueStatus>, { cardClass: string; badgeClass: string; label: string }> = {
-  overdue:  { cardClass: 'border-red-300 bg-red-50',    badgeClass: 'text-red-500',    label: '기한 초과' },
+  overdue:  { cardClass: 'border-red-300 bg-red-50',       badgeClass: 'text-red-500',    label: '기한 초과' },
   today:    { cardClass: 'border-orange-300 bg-orange-50', badgeClass: 'text-orange-500', label: '오늘 마감' },
   tomorrow: { cardClass: 'border-yellow-300 bg-yellow-50', badgeClass: 'text-yellow-600', label: '내일 마감' },
 }
 
 // ───────── TaskCard ─────────
-function TaskCard({ task, columns, onSoftDelete, onMove, onArchive, onOpenModal, isDragOverlay = false }: {
+function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
+  onOpenModal, onCopy, onMoveToProject, isDragOverlay = false }: {
   task: Task
   columns: ProjectColumn[]
+  projects?: Project[]
+  currentProjectId?: string
   onSoftDelete: (id: string) => void
   onMove?: (task: Task, columnId: string) => void
   onArchive?: (id: string) => void
   onOpenModal?: (task: Task) => void
+  onCopy?: (task: Task) => void
+  onMoveToProject?: (task: Task, targetProjectId: string) => void
   isDragOverlay?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: task.id,
-    disabled: isDragOverlay,
+    id: task.id, disabled: isDragOverlay,
   })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }
+
+  const [expanded, setExpanded] = useState(false)
+  const [showMoveModal, setShowMoveModal] = useState(false)
+
   const isMeeting = task.task_type === 'meeting'
   const isDone = columns.some(c => c.id === task.status && c.name === '완료')
   const priority = PRIORITY_META[task.priority]
   const dueStatus = isMeeting || isDone ? null : getDueStatus(task.due_date)
   const dueMeta = dueStatus ? DUE_STATUS_META[dueStatus] : null
 
+  const hasDescription = !!task.description?.trim()
+  const checklist = task.checklist_items ?? []
+  const completedCount = checklist.filter(i => i.completed).length
+  const hasExpandable = hasDescription || checklist.length > 0
+
   return (
-    <div
-      ref={setNodeRef}
-      style={isDragOverlay ? undefined : style}
-      {...listeners} {...attributes}
-      onDoubleClick={e => { e.stopPropagation(); onOpenModal?.(task) }}
-      className={`rounded-lg p-3 shadow-sm border group cursor-grab active:cursor-grabbing ${
-        isDragOverlay ? 'bg-white shadow-lg rotate-1 border-gray-100' :
-        dueMeta ? `${dueMeta.cardClass}` : 'bg-white border-gray-100'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-snug">{task.title}</p>
+    <>
+      {showMoveModal && projects && currentProjectId && onMoveToProject && (
+        <MoveToProjectModal
+          task={task}
+          projects={projects}
+          currentProjectId={currentProjectId}
+          onClose={() => setShowMoveModal(false)}
+          onMove={onMoveToProject}
+        />
+      )}
+      <div
+        ref={setNodeRef}
+        style={isDragOverlay ? undefined : style}
+        {...listeners} {...attributes}
+        onDoubleClick={e => { e.stopPropagation(); onOpenModal?.(task) }}
+        className={`rounded-lg p-3 shadow-sm border group cursor-grab active:cursor-grabbing ${
+          isDragOverlay ? 'bg-white shadow-lg rotate-1 border-gray-100' :
+          dueMeta ? `${dueMeta.cardClass}` : 'bg-white border-gray-100'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-medium leading-snug flex-1">{task.title}</p>
+          {!isDragOverlay && (
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+              <button onPointerDown={e => e.stopPropagation()} onClick={() => onOpenModal?.(task)}
+                className="p-0.5 text-gray-300 hover:text-blue-500 transition-colors" title="열기">
+                <Maximize2 size={13} />
+              </button>
+              <button onPointerDown={e => e.stopPropagation()} onClick={() => onCopy?.(task)}
+                className="p-0.5 text-gray-300 hover:text-green-500 transition-colors" title="복사">
+                <Copy size={13} />
+              </button>
+              <button onPointerDown={e => e.stopPropagation()} onClick={() => setShowMoveModal(true)}
+                className="p-0.5 text-gray-300 hover:text-purple-500 transition-colors" title="다른 프로젝트로 이동">
+                <FolderInput size={13} />
+              </button>
+              <button onPointerDown={e => e.stopPropagation()} onClick={() => onArchive?.(task.id)}
+                className="p-0.5 text-gray-300 hover:text-amber-500 transition-colors" title="보관">
+                <Archive size={13} />
+              </button>
+              <button onPointerDown={e => e.stopPropagation()} onClick={() => onSoftDelete(task.id)}
+                className="p-0.5 text-gray-300 hover:text-red-400 transition-colors" title="휴지통">
+                <Trash2 size={13} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 배지 행 */}
         {!isDragOverlay && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-            <button onPointerDown={e => e.stopPropagation()} onClick={() => onOpenModal?.(task)}
-              className="p-0.5 text-gray-300 hover:text-blue-500 transition-colors" title="열기">
-              <Maximize2 size={13} />
-            </button>
-            <button onPointerDown={e => e.stopPropagation()} onClick={() => onArchive?.(task.id)}
-              className="p-0.5 text-gray-300 hover:text-amber-500 transition-colors" title="보관">
-              <Archive size={13} />
-            </button>
-            <button onPointerDown={e => e.stopPropagation()} onClick={() => onSoftDelete(task.id)}
-              className="p-0.5 text-gray-300 hover:text-red-400 transition-colors" title="휴지통">
-              <Trash2 size={13} />
-            </button>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {isMeeting && (
+              <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-600">
+                <Users size={10} /> 미팅
+              </span>
+            )}
+            {!isMeeting && task.priority !== 'normal' && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${priority.className}`}>
+                {priority.label}
+              </span>
+            )}
+            {task.due_date && (
+              <span className={`flex items-center gap-0.5 text-xs font-medium ${dueMeta ? dueMeta.badgeClass : 'text-gray-400'}`}>
+                <CalendarDays size={11} />
+                {dueMeta ? dueMeta.label : new Date(task.due_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
+            {checklist.length > 0 && (
+              <span className="flex items-center gap-0.5 text-xs text-gray-400">
+                <CheckSquare size={11} />
+                {completedCount}/{checklist.length}
+              </span>
+            )}
+            {/* 펼치기 버튼 */}
+            {hasExpandable && (
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
+                className="ml-auto text-gray-300 hover:text-gray-500 transition-colors"
+                title={expanded ? '접기' : '내용 보기'}
+              >
+                {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 펼쳐진 내용 — 설명 + 체크리스트 */}
+        {!isDragOverlay && expanded && (
+          <div className="mt-2 space-y-2 border-t border-gray-100 pt-2">
+            {hasDescription && (
+              <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed">{task.description}</p>
+            )}
+            {checklist.length > 0 && (
+              <div className="space-y-1">
+                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-400 rounded-full"
+                    style={{ width: `${(completedCount / checklist.length) * 100}%` }} />
+                </div>
+                {checklist.slice(0, 4).map(item => (
+                  <div key={item.id} className="flex items-center gap-1.5 text-xs">
+                    {item.completed
+                      ? <CheckSquare size={12} className="text-green-500 shrink-0" />
+                      : <Square size={12} className="text-gray-300 shrink-0" />}
+                    <span className={item.completed ? 'line-through text-gray-400' : 'text-gray-600'}>{item.text}</span>
+                  </div>
+                ))}
+                {checklist.length > 4 && (
+                  <p className="text-xs text-gray-400 pl-4">+{checklist.length - 4}개 더</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 태그 */}
+        {!isDragOverlay && task.tags && task.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2 justify-end">
+            {task.tags.slice(0, 3).map(t => (
+              <span key={t} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(t)}`}>{t}</span>
+            ))}
+            {task.tags.length > 3 && <span className="text-xs text-gray-400 self-center">+{task.tags.length - 3}</span>}
+          </div>
+        )}
+
+        {/* 같은 프로젝트 내 컬럼 이동 버튼 */}
+        {!isDragOverlay && onMove && (
+          <div className="flex flex-wrap gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {columns.filter(c => c.id !== task.status).map(c => (
+              <button key={c.id} onPointerDown={e => e.stopPropagation()} onClick={() => onMove(task, c.id)}
+                className="text-xs px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                → {c.name}
+              </button>
+            ))}
           </div>
         )}
       </div>
-
-      {/* 우선순위 배지 + 날짜 */}
-      {!isDragOverlay && (
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          {isMeeting && (
-            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-600">
-              <Users size={10} /> 미팅
-            </span>
-          )}
-          {!isMeeting && task.priority !== 'normal' && (
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${priority.className}`}>
-              {priority.label}
-            </span>
-          )}
-          {task.due_date && (
-            <span className={`flex items-center gap-0.5 text-xs font-medium ${dueMeta ? dueMeta.badgeClass : 'text-gray-400'}`}>
-              <CalendarDays size={11} />
-              {dueMeta ? dueMeta.label : new Date(task.due_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-            </span>
-          )}
-          {task.checklist_items && task.checklist_items.length > 0 && (
-            <span className="flex items-center gap-0.5 text-xs text-gray-400">
-              <CheckSquare size={11} />
-              {task.checklist_items.filter(i => i.completed).length}/{task.checklist_items.length}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* 태그 */}
-      {!isDragOverlay && task.tags && task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2 justify-end">
-          {task.tags.slice(0, 3).map(t => (
-            <span key={t} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(t)}`}>
-              {t}
-            </span>
-          ))}
-          {task.tags.length > 3 && (
-            <span className="text-xs text-gray-400 self-center">+{task.tags.length - 3}</span>
-          )}
-        </div>
-      )}
-
-      {/* 이동 버튼 */}
-      {!isDragOverlay && onMove && (
-        <div className="flex flex-wrap gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          {columns.filter(c => c.id !== task.status).map(c => (
-            <button key={c.id} onPointerDown={e => e.stopPropagation()} onClick={() => onMove(task, c.id)}
-              className="text-xs px-2 py-0.5 bg-gray-100 hover:bg-gray-200 rounded transition-colors">
-              → {c.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   )
 }
 
 // ───────── KanbanColumn ─────────
-function KanbanColumn({ column, tasks, columns, onSoftDelete, onMove, onArchive, onDeleteColumn,
-  onOpenModal, updateColumnMutation, collapsed, onToggleCollapse, addingTo, setAddingTo, newTitle, setNewTitle, onAddTask }: {
+function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
+  onDeleteColumn, onOpenModal, onCopy, onMoveToProject, updateColumnMutation,
+  collapsed, onToggleCollapse, addingTo, setAddingTo, newTitle, setNewTitle, onAddTask }: {
   column: ProjectColumn
   tasks: Task[]
   columns: ProjectColumn[]
+  projects?: Project[]
+  currentProjectId?: string
   onSoftDelete: (id: string) => void
   onMove: (task: Task, columnId: string) => void
   onArchive: (id: string) => void
   onDeleteColumn: (col: ProjectColumn) => void
   onOpenModal: (task: Task) => void
+  onCopy: (task: Task) => void
+  onMoveToProject: (task: Task, targetProjectId: string) => void
   updateColumnMutation: { mutate: (args: { colId: string; body: Partial<ProjectColumn> }) => void }
   collapsed: boolean
   onToggleCollapse: () => void
@@ -559,40 +590,24 @@ function KanbanColumn({ column, tasks, columns, onSoftDelete, onMove, onArchive,
             className="cursor-grab active:cursor-grabbing p-0.5 text-gray-300 hover:text-gray-500 transition-colors touch-none">
             <GripVertical size={14} />
           </button>
-          <span
-            className="text-sm font-semibold cursor-pointer hover:text-gray-600 transition-colors"
-            onDoubleClick={() => setShowSettingsModal(true)}
-            title="더블클릭하여 설정"
-          >
+          <span className="text-sm font-semibold cursor-pointer hover:text-gray-600 transition-colors"
+            onDoubleClick={() => setShowSettingsModal(true)} title="더블클릭하여 설정">
             {column.name}
           </span>
-
-          {/* 태스크 수 / WIP 배지 */}
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            title="클릭하여 컬럼 설정"
+          <button onClick={() => setShowSettingsModal(true)} title="컬럼 설정"
             className={`text-xs px-1.5 py-0.5 rounded-full transition-colors ${
-              wipExceeded
-                ? 'bg-red-100 text-red-600 font-semibold'
-                : 'bg-white/60 text-gray-400 hover:bg-white hover:text-gray-600'
-            }`}
-          >
+              wipExceeded ? 'bg-red-100 text-red-600 font-semibold' : 'bg-white/60 text-gray-400 hover:bg-white hover:text-gray-600'
+            }`}>
             {column.wip_limit != null ? `${tasks.length}/${column.wip_limit}` : tasks.length}
           </button>
-
           {showSettingsModal && (
-            <ColumnSettingsModal
-              column={column}
-              onClose={() => setShowSettingsModal(false)}
-              onSave={(name, limit) => updateColumnMutation.mutate({ colId: column.id, body: { name, wip_limit: limit } })}
-            />
+            <ColumnSettingsModal column={column} onClose={() => setShowSettingsModal(false)}
+              onSave={(name, limit) => updateColumnMutation.mutate({ colId: column.id, body: { name, wip_limit: limit } })} />
           )}
         </div>
         <div className="flex items-center gap-0.5">
           <button onClick={() => { setAddingTo(column.id); setNewTitle('') }}
-            className="p-1 text-gray-400 hover:text-gray-700 transition-colors">
-            <Plus size={16} />
-          </button>
+            className="p-1 text-gray-400 hover:text-gray-700 transition-colors"><Plus size={16} /></button>
           <button onClick={onToggleCollapse}
             className="p-1 text-gray-400 hover:text-gray-700 transition-all" title={collapsed ? '펼치기' : '접기'}>
             {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
@@ -604,37 +619,37 @@ function KanbanColumn({ column, tasks, columns, onSoftDelete, onMove, onArchive,
         </div>
       </div>
 
-      {!collapsed && <div ref={setDropRef} style={{ backgroundColor: column.color }}
-        className={`flex-1 rounded-xl p-2 space-y-2 min-h-32 transition-colors ${isOver ? 'ring-2 ring-gray-400 ring-offset-1' : ''}`}>
-        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {tasks.map(task => (
-            <TaskCard key={task.id} task={task} columns={columns}
-              onSoftDelete={onSoftDelete} onMove={onMove} onArchive={onArchive} onOpenModal={onOpenModal} />
-          ))}
-        </SortableContext>
+      {!collapsed && (
+        <div ref={setDropRef} style={{ backgroundColor: column.color }}
+          className={`flex-1 rounded-xl p-2 space-y-2 min-h-32 transition-colors ${isOver ? 'ring-2 ring-gray-400 ring-offset-1' : ''}`}>
+          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {tasks.map(task => (
+              <TaskCard key={task.id} task={task} columns={columns}
+                projects={projects} currentProjectId={currentProjectId}
+                onSoftDelete={onSoftDelete} onMove={onMove} onArchive={onArchive}
+                onOpenModal={onOpenModal} onCopy={onCopy} onMoveToProject={onMoveToProject} />
+            ))}
+          </SortableContext>
 
-        {addingTo === column.id && (
-          <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-2">
-            <textarea autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddTask(column.id) }
-                if (e.key === 'Escape') setAddingTo(null)
-              }}
-              placeholder="태스크 이름..." rows={2}
-              className="w-full text-sm resize-none focus:outline-none" />
-            <div className="flex gap-1.5">
-              <button onClick={() => onAddTask(column.id)} disabled={!newTitle.trim()}
-                className="px-3 py-1 bg-gray-900 text-white rounded text-xs font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors">
-                추가
-              </button>
-              <button onClick={() => setAddingTo(null)}
-                className="px-3 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50 transition-colors">
-                취소
-              </button>
+          {addingTo === column.id && (
+            <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-2">
+              <textarea autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddTask(column.id) }
+                  if (e.key === 'Escape') setAddingTo(null)
+                }}
+                placeholder="태스크 이름..." rows={2}
+                className="w-full text-sm resize-none focus:outline-none" />
+              <div className="flex gap-1.5">
+                <button onClick={() => onAddTask(column.id)} disabled={!newTitle.trim()}
+                  className="px-3 py-1 bg-gray-900 text-white rounded text-xs font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors">추가</button>
+                <button onClick={() => setAddingTo(null)}
+                  className="px-3 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50 transition-colors">취소</button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>}
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -643,19 +658,19 @@ function KanbanColumn({ column, tasks, columns, onSoftDelete, onMove, onArchive,
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const queryClient = useQueryClient()
-  const [addingTo, setAddingTo]         = useState<string | null>(null)
-  const [newTitle, setNewTitle]         = useState('')
-  const [draggingTask, setDraggingTask] = useState<Task | null>(null)
+  const [addingTo, setAddingTo]             = useState<string | null>(null)
+  const [newTitle, setNewTitle]             = useState('')
+  const [draggingTask, setDraggingTask]     = useState<Task | null>(null)
   const [draggingColumn, setDraggingColumn] = useState<ProjectColumn | null>(null)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [showArchived, setShowArchived] = useState(false)
-  const [showTrash, setShowTrash]       = useState(false)
-  const [addingColumn, setAddingColumn] = useState(false)
-  const [newColName, setNewColName]     = useState('')
-  const [newColColor, setNewColColor]   = useState(COLUMN_COLORS[0])
+  const [selectedTask, setSelectedTask]     = useState<Task | null>(null)
+  const [showArchived, setShowArchived]     = useState(false)
+  const [showTrash, setShowTrash]           = useState(false)
+  const [addingColumn, setAddingColumn]     = useState(false)
+  const [newColName, setNewColName]         = useState('')
+  const [newColColor, setNewColColor]       = useState(COLUMN_COLORS[0])
   const [filterPriority, setFilterPriority] = useState<TaskPriority | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [collapsedCols, setCollapsedCols] = useState<Set<string>>(() => {
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [collapsedCols, setCollapsedCols]   = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem(`collapsed-${id}`) ?? '[]')) }
     catch { return new Set() }
   })
@@ -666,6 +681,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     queryKey: ['project', id],
     queryFn: async () => {
       const { data, error } = await supabase.from('projects').select('*').eq('id', id).single()
+      if (error) throw error
+      return data
+    },
+  })
+
+  const { data: allProjects = [] } = useQuery<Project[]>({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('projects').select('*').order('created_at')
       if (error) throw error
       return data
     },
@@ -730,6 +754,26 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const archivedTasks = allTasks.filter(t => t.archived && !t.deleted_at)
   const trashedTasks  = allTasks.filter(t => !!t.deleted_at)
 
+  // ── 칸반 요약 통계 ──
+  const summary = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const doneColIds = new Set(columns.filter(c => c.name === '완료').map(c => c.id))
+    const base = allTasks.filter(t => !t.archived && !t.deleted_at)
+    const total   = base.length
+    const done    = base.filter(t => doneColIds.has(t.status)).length
+    const overdue = base.filter(t => {
+      if (!t.due_date || doneColIds.has(t.status) || t.task_type === 'meeting') return false
+      const d = new Date(t.due_date); d.setHours(0,0,0,0)
+      return d < today
+    }).length
+    const dueToday = base.filter(t => {
+      if (!t.due_date || doneColIds.has(t.status) || t.task_type === 'meeting') return false
+      const d = new Date(t.due_date); d.setHours(0,0,0,0)
+      return d.getTime() === today.getTime()
+    }).length
+    return { total, done, overdue, dueToday }
+  }, [allTasks, columns])
+
   const updateTaskMutation = useMutation({
     mutationFn: async ({ taskId, body }: { taskId: string; body: Partial<Task> }) => {
       const { error } = await supabase.from('tasks').update(body).eq('id', taskId)
@@ -754,9 +798,58 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', id] })
-      setNewTitle('')
-      setAddingTo(null)
+      setNewTitle(''); setAddingTo(null)
     },
+  })
+
+  const copyTaskMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: newTask, error } = await supabase.from('tasks').insert({
+        title: `(복사) ${task.title}`,
+        description: task.description,
+        notes: task.notes,
+        priority: task.priority,
+        task_type: task.task_type,
+        due_date: task.due_date,
+        tags: task.tags,
+        status: task.status,
+        project_id: task.project_id,
+        user_id: user!.id,
+        order: activeTasks.length,
+        archived: false,
+      }).select().single()
+      if (error) throw error
+      // 체크리스트 복사
+      const items = task.checklist_items ?? []
+      if (items.length > 0 && newTask) {
+        await supabase.from('checklist_items').insert(
+          items.map((item, i) => ({
+            task_id: newTask.id,
+            user_id: user!.id,
+            text: item.text,
+            completed: false,
+            order: i,
+          }))
+        )
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', id] }),
+  })
+
+  const moveToProjectMutation = useMutation({
+    mutationFn: async ({ task, targetProjectId }: { task: Task; targetProjectId: string }) => {
+      const { data: targetCols } = await supabase
+        .from('columns').select('id').eq('project_id', targetProjectId).order('order').limit(1)
+      const firstColId = targetCols?.[0]?.id
+      if (!firstColId) throw new Error('대상 프로젝트에 컬럼이 없습니다')
+      const { error } = await supabase.from('tasks').update({
+        project_id: targetProjectId,
+        status: firstColId,
+      }).eq('id', task.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', id] }),
   })
 
   const updateColumnMutation = useMutation({
@@ -769,9 +862,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const reorderColumnsMutation = useMutation({
     mutationFn: async (newOrder: ProjectColumn[]) => {
-      await Promise.all(newOrder.map((col, i) =>
-        supabase.from('columns').update({ order: i }).eq('id', col.id)
-      ))
+      await Promise.all(newOrder.map((col, i) => supabase.from('columns').update({ order: i }).eq('id', col.id)))
     },
     onMutate: async (newOrder) => {
       await queryClient.cancelQueries({ queryKey: ['columns', id] })
@@ -804,9 +895,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const reorderTasksMutation = useMutation({
     mutationFn: async (tasks: Task[]) => {
-      await Promise.all(tasks.map((t, i) =>
-        supabase.from('tasks').update({ order: i }).eq('id', t.id)
-      ))
+      await Promise.all(tasks.map((t, i) => supabase.from('tasks').update({ order: i }).eq('id', t.id)))
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', id] }),
   })
@@ -820,10 +909,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (confirm(`"${col.name}" 컬럼을 삭제하시겠어요?`)) deleteColumnMutation.mutate(col.id)
   }
 
-  function handleDragCancel() {
-    setDraggingTask(null)
-    setDraggingColumn(null)
-  }
+  function handleDragCancel() { setDraggingTask(null); setDraggingColumn(null) }
 
   function handleDragStart(event: DragStartEvent) {
     const activeId = event.active.id as string
@@ -836,8 +922,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-
-    // 컬럼 순서 변경
     if ((active.id as string).startsWith('col:')) {
       setDraggingColumn(null)
       if (!over) return
@@ -848,31 +932,22 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       if (fi !== -1 && ti !== -1 && fi !== ti) reorderColumnsMutation.mutate(arrayMove(columns, fi, ti))
       return
     }
-
     setDraggingTask(null)
     if (!over) return
-
     const activeTask = activeTasks.find(t => t.id === active.id)
     if (!activeTask) return
-
     const overId = over.id as string
     const overTask = activeTasks.find(t => t.id === overId)
-
     if (overTask) {
       if (activeTask.status === overTask.status) {
-        // 같은 컬럼 내 순서 변경
-        const colTasks = activeTasks
-          .filter(t => t.status === activeTask.status)
-          .sort((a, b) => a.order - b.order)
+        const colTasks = activeTasks.filter(t => t.status === activeTask.status).sort((a, b) => a.order - b.order)
         const oldIdx = colTasks.findIndex(t => t.id === activeTask.id)
         const newIdx = colTasks.findIndex(t => t.id === overTask.id)
         if (oldIdx !== newIdx) reorderTasksMutation.mutate(arrayMove(colTasks, oldIdx, newIdx))
       } else {
-        // 다른 컬럼으로 이동
         updateTaskMutation.mutate({ taskId: activeTask.id, body: { status: overTask.status } })
       }
     } else if (activeTask.status !== overId) {
-      // 빈 컬럼 영역에 드롭
       updateTaskMutation.mutate({ taskId: activeTask.id, body: { status: overId } })
     }
   }
@@ -888,11 +963,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   return (
     <>
       {selectedTask && (
-        <TaskModal
-          task={selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onUpdate={(taskId, body) => updateTaskMutation.mutate({ taskId, body })}
-        />
+        <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)}
+          onUpdate={(taskId, body) => updateTaskMutation.mutate({ taskId, body })} />
       )}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
@@ -901,18 +973,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="px-8 py-5 border-b border-gray-200 bg-white flex items-center gap-3 flex-wrap">
             {project && <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
             <h1 className="text-lg font-bold truncate">{project?.name ?? '...'}</h1>
-            <span className="text-sm text-gray-400">
-              {activeTasks.length}개 태스크{filterPriority ? ` (필터: ${PRIORITY_META[filterPriority].label})` : ''}
-            </span>
             <div className="ml-auto flex items-center gap-3">
-              {/* 검색 */}
               <div className="relative">
-                <input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   placeholder="태스크 검색..."
-                  className="w-44 pl-3 pr-7 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 bg-gray-50"
-                />
+                  className="w-44 pl-3 pr-7 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 bg-gray-50" />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -920,31 +985,51 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   </button>
                 )}
               </div>
-
-              {/* 우선순위 필터 */}
               <div className="flex items-center gap-1.5">
-              {(['urgent', 'high', 'normal', 'low'] as TaskPriority[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setFilterPriority(prev => prev === p ? null : p)}
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
-                    filterPriority === p
-                      ? PRIORITY_META[p].className + ' border-transparent ring-2 ring-offset-1 ring-gray-400'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
-                  }`}
-                >
-                  {PRIORITY_META[p].label}
-                </button>
-              ))}
-              {filterPriority && (
-                <button onClick={() => setFilterPriority(null)}
-                  className="text-xs px-2 py-1 rounded-full text-gray-400 hover:text-gray-700 transition-colors">
-                  초기화
-                </button>
-              )}
+                {(['urgent', 'high', 'normal', 'low'] as TaskPriority[]).map(p => (
+                  <button key={p} onClick={() => setFilterPriority(prev => prev === p ? null : p)}
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
+                      filterPriority === p
+                        ? PRIORITY_META[p].className + ' border-transparent ring-2 ring-offset-1 ring-gray-400'
+                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                    }`}>
+                    {PRIORITY_META[p].label}
+                  </button>
+                ))}
+                {filterPriority && (
+                  <button onClick={() => setFilterPriority(null)}
+                    className="text-xs px-2 py-1 rounded-full text-gray-400 hover:text-gray-700 transition-colors">초기화</button>
+                )}
               </div>
             </div>
           </div>
+
+          {/* 요약 통계 바 */}
+          {summary.total > 0 && (
+            <div className="px-8 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 text-xs">
+              <span className="flex items-center gap-1.5 text-gray-500">
+                <Layers size={13} /> 전체 <strong className="text-gray-800">{summary.total}</strong>
+              </span>
+              <span className="flex items-center gap-1.5 text-green-600">
+                <CheckSquare size={13} /> 완료 <strong>{summary.done}</strong>
+              </span>
+              {summary.dueToday > 0 && (
+                <span className="flex items-center gap-1.5 text-orange-500">
+                  <Clock size={13} /> 오늘 마감 <strong>{summary.dueToday}</strong>
+                </span>
+              )}
+              {summary.overdue > 0 && (
+                <span className="flex items-center gap-1.5 text-red-500">
+                  <AlertCircle size={13} /> 기한 초과 <strong>{summary.overdue}</strong>
+                </span>
+              )}
+              {summary.total > 0 && (
+                <span className="ml-auto text-gray-400">
+                  진행률 <strong className="text-gray-700">{Math.round((summary.done / summary.total) * 100)}%</strong>
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex-1 overflow-auto p-8 space-y-8">
             {/* 칸반 보드 */}
@@ -954,11 +1039,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <KanbanColumn key={col.id} column={col}
                     tasks={activeTasks.filter(t => t.status === col.id)}
                     columns={columns}
+                    projects={allProjects}
+                    currentProjectId={id}
                     onSoftDelete={taskId => updateTaskMutation.mutate({ taskId, body: { deleted_at: new Date().toISOString() } })}
                     onMove={(task, columnId) => updateTaskMutation.mutate({ taskId: task.id, body: { status: columnId } })}
                     onArchive={taskId => updateTaskMutation.mutate({ taskId, body: { archived: true } })}
                     onDeleteColumn={handleDeleteColumn}
                     onOpenModal={setSelectedTask}
+                    onCopy={task => copyTaskMutation.mutate(task)}
+                    onMoveToProject={(task, targetProjectId) => moveToProjectMutation.mutate({ task, targetProjectId })}
                     updateColumnMutation={updateColumnMutation}
                     collapsed={collapsedCols.has(col.id)}
                     onToggleCollapse={() => toggleCollapse(col.id)}
@@ -989,13 +1078,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <div className="flex gap-2">
                     <button onClick={() => createColumnMutation.mutate({ name: newColName, color: newColColor })}
                       disabled={!newColName.trim()}
-                      className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors">
-                      추가
-                    </button>
+                      className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors">추가</button>
                     <button onClick={() => setAddingColumn(false)}
-                      className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 transition-colors">
-                      취소
-                    </button>
+                      className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 transition-colors">취소</button>
                   </div>
                 </div>
               ) : (
