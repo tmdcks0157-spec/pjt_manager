@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Project, ProjectColumn, TaskPriority, TaskType } from '@/types'
-import { X, CalendarDays, Users, Plus } from 'lucide-react'
+import { X, CalendarDays, Users, Plus, Square, CheckSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const PRIORITY_META: Record<TaskPriority, { label: string; className: string }> = {
@@ -42,9 +42,17 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
   const [dueDate, setDueDate]     = useState(new Date().toISOString().split('T')[0])
   const [description, setDesc]    = useState('')
   const [notes, setNotes]         = useState('')
-  const [tags, setTags]           = useState<string[]>([])
-  const [tagInput, setTagInput]   = useState('')
-  const titleRef = useRef<HTMLInputElement>(null)
+  const [tags, setTags]               = useState<string[]>([])
+  const [tagInput, setTagInput]       = useState('')
+  const [checklistItems, setChecklistItems] = useState<string[]>([])
+  const [newItemText, setNewItemText] = useState('')
+  const titleRef    = useRef<HTMLInputElement>(null)
+  const itemInputRef = useRef<HTMLInputElement>(null)
+
+  function addChecklistItem() {
+    const t = newItemText.trim()
+    if (t) { setChecklistItems(p => [...p, t]); setNewItemText('') }
+  }
 
   const firstCol = columns
     .filter(c => c.project_id === projectId && c.name !== '완료')
@@ -60,7 +68,9 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
     mutationFn: async () => {
       if (!title.trim() || !firstCol) throw new Error('필수 항목 누락')
       const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('tasks').insert({
+
+      // 1단계: 태스크 생성 (id 반환)
+      const { data: task, error } = await supabase.from('tasks').insert({
         title: title.trim(),
         project_id: projectId,
         user_id: user!.id,
@@ -73,8 +83,22 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
         tags,
         archived: false,
         order: 0,
-      })
+      }).select('id').single()
       if (error) throw error
+
+      // 2단계: 체크리스트 항목 생성
+      if (checklistItems.length > 0) {
+        const { error: clError } = await supabase.from('checklist_items').insert(
+          checklistItems.map((text, i) => ({
+            task_id: task.id,
+            user_id: user!.id,
+            text,
+            completed: false,
+            order: i,
+          }))
+        )
+        if (clError) throw clError
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['today-tasks'] })
@@ -197,6 +221,48 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
                 placeholder={tags.length === 0 ? '태그 입력 후 Enter...' : ''}
                 className="text-xs focus:outline-none text-gray-600 placeholder:text-gray-300 min-w-[120px] flex-1 bg-transparent"
               />
+            </div>
+          </div>
+
+          {/* 체크리스트 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-400">체크리스트</p>
+              {checklistItems.length > 0 && (
+                <span className="text-xs text-gray-400">0 / {checklistItems.length}</span>
+              )}
+            </div>
+            <div className="space-y-1">
+              {checklistItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 group/item">
+                  <Square size={14} className="text-gray-300 shrink-0" />
+                  <span className="flex-1 text-sm text-gray-700">{item}</span>
+                  <button
+                    onClick={() => setChecklistItems(p => p.filter((_, idx) => idx !== i))}
+                    className="opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-400 transition-all"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckSquare size={14} className="text-gray-300 shrink-0" />
+              <input
+                ref={itemInputRef}
+                value={newItemText}
+                onChange={e => setNewItemText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
+                placeholder="항목 추가..."
+                className="flex-1 text-sm text-gray-700 focus:outline-none border-b border-gray-200 focus:border-gray-400 pb-0.5 transition-colors bg-transparent"
+              />
+              <button
+                onClick={addChecklistItem}
+                disabled={!newItemText.trim()}
+                className="text-gray-400 hover:text-gray-700 disabled:opacity-30 transition-colors"
+              >
+                <Plus size={14} />
+              </button>
             </div>
           </div>
 
