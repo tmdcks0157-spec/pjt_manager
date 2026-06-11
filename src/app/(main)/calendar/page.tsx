@@ -235,6 +235,14 @@ export default function CalendarPage() {
       if (error) throw error; return data
     },
   })
+  const { data: doneColumnIds = new Set<string>() } = useQuery<Set<string>>({
+    queryKey: ['done-column-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('columns').select('id, name')
+      if (error) throw error
+      return new Set((data ?? []).filter(c => c.name === '완료').map(c => c.id))
+    },
+  })
   const { data: events = [] } = useQuery<CalendarEvent[]>({
     queryKey: ['calendar-events'],
     queryFn: async () => {
@@ -357,13 +365,14 @@ export default function CalendarPage() {
   const thisWeekSun = getWeekSunday(today)
   const thisWeekSat = new Date(thisWeekSun); thisWeekSat.setDate(thisWeekSat.getDate() + 6)
 
-  const todayDueTasks = filteredTasks.filter(t => t.due_date && toDateKey(new Date(t.due_date)) === toDateKey(today))
-  const weekDueTasks  = filteredTasks.filter(t => {
+  const activeTasks   = filteredTasks.filter(t => !doneColumnIds.has(t.status) && t.task_type !== 'meeting')
+  const todayDueTasks = activeTasks.filter(t => t.due_date && toDateKey(new Date(t.due_date)) === toDateKey(today))
+  const weekDueTasks  = activeTasks.filter(t => {
     if (!t.due_date) return false
     const d = new Date(t.due_date); d.setHours(0,0,0,0)
     return d >= thisWeekSun && d <= thisWeekSat && toDateKey(d) !== toDateKey(today)
   })
-  const overdueTasks  = filteredTasks.filter(t => {
+  const overdueTasks  = activeTasks.filter(t => {
     if (!t.due_date) return false
     const d = new Date(t.due_date); d.setHours(0,0,0,0)
     return d < new Date(today.setHours(0,0,0,0))
@@ -474,9 +483,9 @@ export default function CalendarPage() {
             </div>
           ))}
           {(isWeekView ? dayTasks : dayTasks.slice(0, 2)).map(task => (
-            <div key={task.id} className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[task.priority]}`} />
-              <span className="text-xs text-gray-700 truncate flex-1 leading-tight">{task.title}</span>
+            <div key={task.id} className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md ${task.task_type === 'meeting' ? 'bg-indigo-50' : ''}`}>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.task_type === 'meeting' ? 'bg-indigo-400' : PRIORITY_DOT[task.priority]}`} />
+              <span className={`text-xs truncate flex-1 leading-tight ${task.task_type === 'meeting' ? 'text-indigo-700' : 'text-gray-700'}`}>{task.title}</span>
             </div>
           ))}
           {!isWeekView && (dayEvents.length + dayTasks.length) > 4 && (
@@ -862,19 +871,25 @@ export default function CalendarPage() {
                   ))}
                   {selectedTasks.map(task => {
                     const proj = projectMap[task.project_id]
+                    const isMeeting = task.task_type === 'meeting'
                     return (
-                      <div key={task.id} className="p-3 rounded-xl border border-gray-100 bg-gray-50 space-y-2 hover:border-gray-200 transition-colors">
+                      <div key={task.id} className={`p-3 rounded-xl border space-y-2 hover:border-gray-200 transition-colors ${isMeeting ? 'border-indigo-100 bg-indigo-50' : 'border-gray-100 bg-gray-50'}`}>
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium text-gray-800 leading-snug flex-1">{task.title}</p>
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            {isMeeting && <span className="text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-medium shrink-0">미팅</span>}
+                            <p className="text-sm font-medium text-gray-800 leading-snug truncate">{task.title}</p>
+                          </div>
                           <Link href={`/projects/${task.project_id}`}
                             className="text-gray-300 hover:text-blue-500 transition-colors shrink-0 mt-0.5">
                             <ExternalLink size={13} />
                           </Link>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_BADGE[task.priority]}`}>
-                            {PRIORITY_LABEL[task.priority]}
-                          </span>
+                          {!isMeeting && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_BADGE[task.priority]}`}>
+                              {PRIORITY_LABEL[task.priority]}
+                            </span>
+                          )}
                           {proj && (
                             <span className="flex items-center gap-1 text-xs text-gray-500">
                               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: proj.color }} />

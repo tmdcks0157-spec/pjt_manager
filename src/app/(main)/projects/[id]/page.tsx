@@ -395,8 +395,25 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
   })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }
 
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      const stored: string[] = JSON.parse(localStorage.getItem(`expanded-cards-${task.project_id}`) ?? '[]')
+      return stored.includes(task.id)
+    } catch { return false }
+  })
   const [showMoveModal, setShowMoveModal] = useState(false)
+
+  function toggleExpanded() {
+    setExpanded(v => {
+      const next = !v
+      try {
+        const stored = new Set<string>(JSON.parse(localStorage.getItem(`expanded-cards-${task.project_id}`) ?? '[]'))
+        next ? stored.add(task.id) : stored.delete(task.id)
+        localStorage.setItem(`expanded-cards-${task.project_id}`, JSON.stringify([...stored]))
+      } catch {}
+      return next
+    })
+  }
 
   const isMeeting = task.task_type === 'meeting'
   const isDone = columns.some(c => c.id === task.status && c.name === '완료')
@@ -487,7 +504,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
             {hasExpandable && (
               <button
                 onPointerDown={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
+                onClick={e => { e.stopPropagation(); toggleExpanded() }}
                 className="ml-auto text-gray-300 hover:text-gray-500 transition-colors"
                 title={expanded ? '접기' : '내용 보기'}
               >
