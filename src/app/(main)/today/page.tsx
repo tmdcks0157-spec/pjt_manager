@@ -47,7 +47,8 @@ export default function TodayPage() {
   const queryClient = useQueryClient()
 
   // ── 모달/폼 상태 ──
-  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showTaskModal, setShowTaskModal]   = useState(false)
+  const [showDoneSection, setShowDoneSection] = useState(true)
   const [showIssueForm, setShowIssueForm] = useState(false)
   const [issueProjectId, setIssueProjectId] = useState('')
   const [issueTitle, setIssueTitle]         = useState('')
@@ -142,6 +143,12 @@ export default function TodayPage() {
     return d > today
   }), [activeTasks, today])
 
+  // 오늘 완료 처리한 태스크 (완료 컬럼 + updated_at 오늘)
+  const todayDoneTasks = useMemo(() =>
+    tasks.filter(t => doneColIds.has(t.status) && t.updated_at >= todayStart && t.updated_at <= todayEnd),
+    [tasks, doneColIds, todayStart, todayEnd]
+  )
+
   const todayCreatedTasks = useMemo(() =>
     tasks.filter(t => t.created_at >= todayStart && t.created_at <= todayEnd),
     [tasks, todayStart, todayEnd]
@@ -211,7 +218,7 @@ export default function TodayPage() {
   })
 
   const totalToday = todayTasks.length + todayMeetings.length
-  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0
+  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0
 
   // ── sub-components ──
   function TaskRow({ task }: { task: Task }) {
@@ -462,10 +469,57 @@ export default function TodayPage() {
               tasks={urgentTasks}
               accent="text-red-600"
             />
-            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && (
+            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayDoneTasks.length === 0 && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
                 <CheckCircle2 size={32} className="mx-auto mb-2 text-green-400" />
                 <p className="text-sm">처리할 항목이 없어요</p>
+              </div>
+            )}
+
+            {/* 오늘 처리 완료 */}
+            {todayDoneTasks.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => setShowDoneSection(p => !p)}
+                  className="w-full flex items-center gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                >
+                  <CheckCircle2 size={14} className="text-green-500" />
+                  <span className="text-sm font-semibold text-green-600">처리 완료</span>
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-medium">{todayDoneTasks.length}개</span>
+                    <ChevronRight size={13} className={cn('text-gray-300 transition-transform', showDoneSection ? 'rotate-90' : '')} />
+                  </span>
+                </button>
+                {showDoneSection && (
+                  <div className="divide-y divide-gray-50">
+                    {todayDoneTasks.map(task => {
+                      const proj = projMap[task.project_id]
+                      const checklist = task.checklist_items ?? []
+                      const completed = checklist.filter(i => i.completed).length
+                      return (
+                        <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                          <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+                          <button
+                            onClick={() => router.push(`/projects/${task.project_id}`)}
+                            className="flex-1 text-left flex items-center gap-2 min-w-0"
+                          >
+                            {proj && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />}
+                            <span className="text-sm text-gray-400 line-through truncate">{task.title}</span>
+                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {checklist.length > 0 && (
+                              <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+                                <CheckSquare size={10} /> {completed}/{checklist.length}
+                              </span>
+                            )}
+                            {proj && <span className="text-[10px] text-gray-400 hidden sm:block">{proj.name}</span>}
+                            <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
