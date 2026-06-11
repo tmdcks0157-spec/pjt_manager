@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Task, TaskPriority, ProjectColumn, ChecklistItem } from '@/types'
-import { Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw, GripVertical, CalendarDays, Maximize2, CheckSquare, Square } from 'lucide-react'
+import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem } from '@/types'
+import { Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw, GripVertical, CalendarDays, Maximize2, CheckSquare, Square, Users } from 'lucide-react'
 import { use } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -58,6 +58,7 @@ function TaskModal({ task, onClose, onUpdate }: {
   const [description, setDesc]  = useState(task.description)
   const [notes, setNotes]       = useState(task.notes)
   const [priority, setPriority] = useState<TaskPriority>(task.priority)
+  const [taskType, setTaskType] = useState<TaskType>(task.task_type ?? 'task')
   const [dueDate, setDueDate]   = useState(task.due_date ? task.due_date.slice(0, 10) : '')
   const [tags, setTags]             = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput]     = useState('')
@@ -126,6 +127,7 @@ function TaskModal({ task, onClose, onUpdate }: {
       description: description,
       notes:       notes,
       priority:    priority,
+      task_type:   taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,
       tags,
     })
@@ -150,7 +152,25 @@ function TaskModal({ task, onClose, onUpdate }: {
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
-          {/* 우선순위 + 마감일 */}
+          {/* 태스크 유형 */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTaskType('task')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all
+                ${taskType === 'task' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+            >
+              <CalendarDays size={12} /> 태스크
+            </button>
+            <button
+              onClick={() => setTaskType('meeting')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all
+                ${taskType === 'meeting' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+            >
+              <Users size={12} /> 미팅 / 일정
+            </button>
+          </div>
+
+          {/* 우선순위 + 날짜 */}
           <div className="flex flex-wrap gap-4">
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-gray-400">우선순위</p>
@@ -165,7 +185,7 @@ function TaskModal({ task, onClose, onUpdate }: {
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-400">마감일</p>
+              <p className="text-xs font-medium text-gray-400">{taskType === 'meeting' ? '일정 날짜' : '마감일'}</p>
               <div className="flex items-center gap-1.5">
                 <CalendarDays size={14} className="text-gray-400" />
                 <input
@@ -411,8 +431,9 @@ function TaskCard({ task, columns, onSoftDelete, onMove, onArchive, onOpenModal,
     disabled: isDragOverlay,
   })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }
+  const isMeeting = task.task_type === 'meeting'
   const priority = PRIORITY_META[task.priority]
-  const dueStatus = getDueStatus(task.due_date)
+  const dueStatus = isMeeting ? null : getDueStatus(task.due_date)
   const dueMeta = dueStatus ? DUE_STATUS_META[dueStatus] : null
 
   return (
@@ -446,10 +467,15 @@ function TaskCard({ task, columns, onSoftDelete, onMove, onArchive, onOpenModal,
         )}
       </div>
 
-      {/* 우선순위 배지 + 마감일 */}
+      {/* 우선순위 배지 + 날짜 */}
       {!isDragOverlay && (
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          {task.priority !== 'normal' && (
+          {isMeeting && (
+            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-600">
+              <Users size={10} /> 미팅
+            </span>
+          )}
+          {!isMeeting && task.priority !== 'normal' && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${priority.className}`}>
               {priority.label}
             </span>
@@ -854,7 +880,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (!newTitle.trim()) return
     createTaskMutation.mutate({
       title: newTitle.trim(), status: columnId,
-      project_id: id, priority: 'normal', tags: [], notes: '', order: activeTasks.length,
+      project_id: id, priority: 'normal', task_type: 'task', tags: [], notes: '', order: activeTasks.length,
     })
   }
 

@@ -19,6 +19,7 @@ export interface ProjectColumn {
 }
 
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent'
+export type TaskType = 'task' | 'meeting'
 
 export interface Task {
   id: string
@@ -31,6 +32,7 @@ export interface Task {
   due_date: string | null
   tags: string[]
   notes: string
+  task_type: TaskType
   order: number
   archived: boolean
   deleted_at: string | null
