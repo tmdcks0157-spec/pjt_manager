@@ -300,7 +300,7 @@ function TaskModal({ task, onClose, onUpdate }: {
               </div>
             )}
             <div className="space-y-1">
-              {checklistItems.map(item => (
+              {[...checklistItems].sort((a, b) => Number(a.completed) - Number(b.completed)).map(item => (
                 <div key={item.id} className="flex items-center gap-2 group/item">
                   <button onClick={() => toggleItemMutation.mutate({ id: item.id, completed: !item.completed })}
                     className="shrink-0 text-gray-400 hover:text-green-500 transition-colors">
@@ -644,7 +644,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
                   <div className="h-full bg-green-400 rounded-full"
                     style={{ width: `${(completedCount / checklist.length) * 100}%` }} />
                 </div>
-                {checklist.slice(0, 4).map(item => (
+                {[...checklist].sort((a, b) => Number(a.completed) - Number(b.completed)).slice(0, 4).map(item => (
                   <div key={item.id} className="flex items-center gap-1.5 text-xs">
                     <button
                       onPointerDown={e => e.stopPropagation()}
