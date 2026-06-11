@@ -454,6 +454,67 @@ const DUE_STATUS_META: Record<NonNullable<DueStatus>, { cardClass: string; badge
   tomorrow: { cardClass: 'border-yellow-300 bg-yellow-50', badgeClass: 'text-yellow-600', label: '내일 마감' },
 }
 
+// ───────── TaskActionModal ─────────
+function TaskActionModal({ task, columns, onClose, onOpenModal, onMove, onCopy, onShowMoveProject, onArchive, onSoftDelete }: {
+  task: Task
+  columns: ProjectColumn[]
+  onClose: () => void
+  onOpenModal: () => void
+  onMove: (columnId: string) => void
+  onCopy: () => void
+  onShowMoveProject: () => void
+  onArchive: () => void
+  onSoftDelete: () => void
+}) {
+  const otherCols = columns.filter(c => c.id !== task.status)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-72 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold truncate">{task.title}</p>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={15} /></button>
+        </div>
+        <div className="py-1.5">
+          <button onClick={() => { onOpenModal(); onClose() }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+            <Maximize2 size={15} className="text-blue-400 shrink-0" /> 열기
+          </button>
+          {otherCols.length > 0 && (
+            <>
+              <div className="border-t border-gray-100 my-1" />
+              {otherCols.map(c => (
+                <button key={c.id} onClick={() => { onMove(c.id); onClose() }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+                  <ChevronRight size={15} className="text-gray-400 shrink-0" />
+                  <span className="truncate">{c.name}으로 이동</span>
+                </button>
+              ))}
+            </>
+          )}
+          <div className="border-t border-gray-100 my-1" />
+          <button onClick={() => { onCopy(); onClose() }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+            <Copy size={15} className="text-green-500 shrink-0" /> 복사
+          </button>
+          <button onClick={() => { onShowMoveProject(); onClose() }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+            <FolderInput size={15} className="text-purple-500 shrink-0" /> 다른 프로젝트로 이동
+          </button>
+          <div className="border-t border-gray-100 my-1" />
+          <button onClick={() => { onArchive(); onClose() }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-amber-50 text-sm text-amber-600 transition-colors">
+            <Archive size={15} className="shrink-0" /> 보관
+          </button>
+          <button onClick={() => { onSoftDelete(); onClose() }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-sm text-red-500 transition-colors">
+            <Trash2 size={15} className="shrink-0" /> 삭제
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ───────── TaskCard ─────────
 function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
   onOpenModal, onCopy, onMoveToProject, isDragOverlay = false }: {
@@ -481,8 +542,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
     } catch { return false }
   })
   const [showMoveModal, setShowMoveModal] = useState(false)
-  const [showCardMenu, setShowCardMenu] = useState(false)
-  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null)
+  const [showActionModal, setShowActionModal] = useState(false)
   const queryClient = useQueryClient()
 
   const toggleChecklistMutation = useMutation({
@@ -527,6 +587,19 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
           onMove={onMoveToProject}
         />
       )}
+      {showActionModal && (
+        <TaskActionModal
+          task={task}
+          columns={columns}
+          onClose={() => setShowActionModal(false)}
+          onOpenModal={() => onOpenModal?.(task)}
+          onMove={colId => onMove?.(task, colId)}
+          onCopy={() => onCopy?.(task)}
+          onShowMoveProject={() => setShowMoveModal(true)}
+          onArchive={() => onArchive?.(task.id)}
+          onSoftDelete={() => onSoftDelete(task.id)}
+        />
+      )}
       <div
         ref={setNodeRef}
         style={isDragOverlay ? undefined : style}
@@ -537,64 +610,12 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
           dueMeta ? `${dueMeta.cardClass}` : 'bg-white border-gray-100'
         }`}
       >
-        {/* 카드 액션 메뉴 */}
-        {!isDragOverlay && showCardMenu && menuAnchor && (
-          <>
-            <div className="fixed inset-0 z-40" onPointerDown={e => { e.stopPropagation(); setShowCardMenu(false) }} />
-            <div
-              style={{ position: 'fixed', top: menuAnchor.top, right: menuAnchor.right, zIndex: 50 }}
-              className="bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-44 text-left max-h-[70vh] overflow-y-auto"
-              onPointerDown={e => e.stopPropagation()}>
-              <button onClick={() => { onOpenModal?.(task); setShowCardMenu(false) }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
-                <Maximize2 size={13} className="text-blue-400" /> 열기
-              </button>
-              {columns.filter(c => c.id !== task.status).length > 0 && (
-                <>
-                  <div className="border-t border-gray-100 my-1" />
-                  {columns.filter(c => c.id !== task.status).map(c => (
-                    <button key={c.id} onClick={() => { onMove?.(task, c.id); setShowCardMenu(false) }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
-                      <ChevronRight size={13} className="text-gray-400" /> {c.name}으로 이동
-                    </button>
-                  ))}
-                </>
-              )}
-              <div className="border-t border-gray-100 my-1" />
-              <button onClick={() => { onCopy?.(task); setShowCardMenu(false) }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
-                <Copy size={13} className="text-green-500" /> 복사
-              </button>
-              <button onClick={() => { setShowMoveModal(true); setShowCardMenu(false) }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 text-xs text-gray-700 transition-colors">
-                <FolderInput size={13} className="text-purple-500" /> 다른 프로젝트로 이동
-              </button>
-              <div className="border-t border-gray-100 my-1" />
-              <button onClick={() => { onArchive?.(task.id); setShowCardMenu(false) }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-amber-50 text-xs text-amber-600 transition-colors">
-                <Archive size={13} /> 보관
-              </button>
-              <button onClick={() => { onSoftDelete(task.id); setShowCardMenu(false) }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-red-50 text-xs text-red-500 transition-colors">
-                <Trash2 size={13} /> 삭제
-              </button>
-            </div>
-          </>
-        )}
-
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-medium leading-snug flex-1">{task.title}</p>
           {!isDragOverlay && (
             <button
               onPointerDown={e => e.stopPropagation()}
-              onClick={e => {
-                e.stopPropagation()
-                if (!showCardMenu) {
-                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                  setMenuAnchor({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-                }
-                setShowCardMenu(v => !v)
-              }}
+              onClick={e => { e.stopPropagation(); setShowActionModal(true) }}
               className="p-0.5 text-gray-300 hover:text-gray-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
               title="더 보기"
             >
