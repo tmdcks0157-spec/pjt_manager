@@ -122,7 +122,7 @@ function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
       <div className="flex items-center gap-2 mt-2 flex-wrap">
         {isMeeting && (
           <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-600">
-            <Users size={10} /> 미팅
+            <Users size={10} /> 일정
           </span>
         )}
         {!isMeeting && task.priority !== 'normal' && (

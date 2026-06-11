@@ -161,7 +161,7 @@ function TaskModal({ task, onClose, onUpdate }: {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all
                 ${taskType === 'meeting' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
             >
-              <Users size={12} /> 미팅 / 일정
+              <Users size={12} /> 일정
             </button>
           </div>
 
@@ -510,7 +510,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {isMeeting && (
               <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-indigo-100 text-indigo-600">
-                <Users size={10} /> 미팅
+                <Users size={10} /> 일정
               </span>
             )}
             {!isMeeting && task.priority !== 'normal' && (
