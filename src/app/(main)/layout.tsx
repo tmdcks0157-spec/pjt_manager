@@ -1,9 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
-import { LayoutDashboard, FolderKanban, Calendar, LogOut } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { LayoutDashboard, Calendar, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -15,6 +18,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuthStore()
+
+  const { data: overdueCount = 0 } = useQuery({
+    queryKey: ['tab-badge-overdue'],
+    enabled: !!user,
+    refetchInterval: 5 * 60 * 1000,
+    queryFn: async () => {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const todayStr = today.toISOString().split('T')[0]
+
+      const [{ data: cols }, { data: tasks }] = await Promise.all([
+        supabase.from('columns').select('id, name'),
+        supabase.from('tasks').select('id, status, due_date')
+          .is('deleted_at', null).eq('archived', false)
+          .not('due_date', 'is', null).lt('due_date', todayStr),
+      ])
+
+      const doneIds = new Set((cols ?? []).filter(c => c.name === '완료').map(c => c.id))
+      return (tasks ?? []).filter(t => !doneIds.has(t.status)).length
+    },
+  })
+
+  useEffect(() => {
+    document.title = overdueCount > 0 ? `(${overdueCount}) My PM` : 'My PM'
+  }, [overdueCount])
 
   async function handleLogout() {
     await logout()
