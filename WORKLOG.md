@@ -2,6 +2,63 @@
 
 ---
 
+## 2026-06-12
+
+### 추가/변경 기능
+
+**Today 대시보드 전면 개편** (`/today`)
+
+레이아웃
+- 단일 컬럼(max-w-2xl) → 2컬럼 그리드(lg:grid-cols-2, max-w-7xl)
+- 왼쪽: 처리할 것 (오늘 일정/마감/기한초과/긴급/처리완료)
+- 오른쪽: 오늘 등록한 것 (태스크 프로젝트별/이슈·기록)
+
+빠른 추가
+- 1줄 바 → `[태스크/일정 추가]` (모달) + `[이슈/기록 추가]` (인라인 토글) 2버튼 구조
+- `CreateTaskModal` 공유 컴포넌트 신규 생성 (`src/components/CreateTaskModal.tsx`)
+  - 프로젝트 선택 / 태스크·일정 타입 토글 / 우선순위 / 마감일 / 설명 / 태그 / 메모
+  - 체크리스트: 항목 입력 후 Enter/+ 추가, hover × 삭제
+  - 태스크 INSERT 후 반환된 id로 checklist_items 일괄 INSERT (2-step)
+- 이슈/기록 인라인 폼: 이슈 페이지와 동일 구성 (타입/제목/본문/우선순위)
+
+오늘 등록한 태스크 섹션 (오른쪽)
+- created_at 기준 오늘 등록된 태스크를 프로젝트별 그룹화
+- 완료 처리: Square 클릭 → doneMutation → 완료 컬럼 이동
+- 완료 취소: CheckCircle2 클릭 → undoneMutation → 첫 번째 활성 컬럼 복원
+
+오늘 이슈/기록 섹션 (오른쪽)
+- 이슈 닫기: Circle 클릭 → closed 전환, 취소선 + 닫힘 배지
+- 이슈 다시 열기: CheckCircle2 클릭 또는 hover 시 RotateCcw 버튼
+- 기록(note): 상태 변경 없이 아이콘만 표시
+
+처리 완료 섹션 (왼쪽 하단)
+- updated_at >= todayStart + 완료 컬럼 조건으로 오늘 완료 태스크 표시
+- 접힘/펼침 토글, 취소선 + 초록 체크
+- CheckCircle2 클릭 → 완료 취소 (firstColByProject 복원)
+
+### 버그 수정
+
+- `doneMutation`에 `updated_at: new Date().toISOString()` 명시 추가
+  → Supabase 자동 갱신 트리거 부재 시 처리완료 필터 누락 방지
+- Supabase SQL로 `tasks` 테이블 `updated_at` 자동 갱신 트리거 추가
+
+### Supabase 마이그레이션 (완료)
+```sql
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tasks_updated_at
+  BEFORE UPDATE ON tasks
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+```
+
+---
+
 ## 2026-06-11
 
 ### 추가/변경 기능
