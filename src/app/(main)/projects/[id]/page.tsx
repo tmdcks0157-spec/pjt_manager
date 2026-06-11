@@ -432,8 +432,9 @@ function TaskCard({ task, columns, onSoftDelete, onMove, onArchive, onOpenModal,
   })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }
   const isMeeting = task.task_type === 'meeting'
+  const isDone = columns.some(c => c.id === task.status && c.name === '완료')
   const priority = PRIORITY_META[task.priority]
-  const dueStatus = isMeeting ? null : getDueStatus(task.due_date)
+  const dueStatus = isMeeting || isDone ? null : getDueStatus(task.due_date)
   const dueMeta = dueStatus ? DUE_STATUS_META[dueStatus] : null
 
   return (
