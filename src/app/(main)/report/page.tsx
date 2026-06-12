@@ -4,26 +4,13 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import type { Task, Project, ProjectColumn } from '@/types'
+import type { Task, Post } from '@/types'
+import { useProjects } from '@/hooks/useProjects'
+import { useAllColumns } from '@/hooks/useAllColumns'
+import { PRIORITY_META } from '@/lib/constants'
 import { CheckCircle2, Plus, AlertCircle, TrendingUp, Calendar, FolderKanban, Clock, MessageSquare, FileText } from 'lucide-react'
 import Link from 'next/link'
 
-interface Post {
-  id: string
-  project_id: string
-  type: 'issue' | 'note'
-  title: string
-  status: 'open' | 'closed'
-  priority: string
-  created_at: string
-}
-
-const PRIORITY_META: Record<string, { label: string; className: string }> = {
-  low:    { label: '낮음', className: 'bg-gray-100 text-gray-500' },
-  normal: { label: '보통', className: 'bg-blue-100 text-blue-600' },
-  high:   { label: '높음', className: 'bg-orange-100 text-orange-600' },
-  urgent: { label: '긴급', className: 'bg-red-100 text-red-600' },
-}
 
 function getWeekRange() {
   const now = new Date()
@@ -42,23 +29,8 @@ export default function WeeklyReportPage() {
   const router = useRouter()
   const { start, end } = useMemo(getWeekRange, [])
 
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('projects').select('*').is('deleted_at', null).eq('archived', false)
-      if (error) throw error
-      return data
-    },
-  })
-
-  const { data: columns = [] } = useQuery<ProjectColumn[]>({
-    queryKey: ['all-columns-report'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('columns').select('*')
-      if (error) throw error
-      return data
-    },
-  })
+  const { data: projects = [] } = useProjects()
+  const { data: columns = [] } = useAllColumns()
 
   const { data: weekTasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ['weekly-report-tasks', start.toISOString()],
@@ -273,7 +245,7 @@ export default function WeeklyReportPage() {
                       const proj = projMap[post.project_id]
                       const isNote = post.type === 'note'
                       const isOpen = post.status === 'open'
-                      const pm = PRIORITY_META[post.priority]
+                      const pm = PRIORITY_META[post.priority as keyof typeof PRIORITY_META]
                       return (
                         <Link
                           key={post.id}
