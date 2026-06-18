@@ -501,10 +501,10 @@ export default function TodayPage() {
 
             {/* 오늘 처리 완료 */}
             {todayDoneTasks.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setShowDoneSection(p => !p)}
-                  className="w-full flex items-center gap-2 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <CheckCircle2 size={14} className="text-green-500" />
                   <span className="text-sm font-semibold text-green-600">처리 완료</span>
@@ -514,13 +514,13 @@ export default function TodayPage() {
                   </span>
                 </button>
                 {showDoneSection && (
-                  <div className="divide-y divide-gray-50">
+                  <div className="divide-y divide-gray-50 dark:divide-gray-700">
                     {todayDoneTasks.map(task => {
                       const proj = projMap[task.project_id]
                       const checklist = task.checklist_items ?? []
                       const completed = checklist.filter(i => i.completed).length
                       return (
-                        <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                        <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                           <button
                             onClick={() => undoneMutation.mutate(task)}
                             disabled={undoneMutation.isPending}
@@ -560,34 +560,34 @@ export default function TodayPage() {
 
             {/* 오늘 등록된 태스크 (프로젝트별) */}
             {todayCreatedTasks.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <ListTodo size={14} className="text-green-500" />
                   <span className="text-sm font-semibold text-green-600">등록한 태스크</span>
-                  <span className="ml-auto text-xs text-gray-400 font-medium">{todayCreatedTasks.length}개</span>
+                  <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 font-medium">{todayCreatedTasks.length}개</span>
                 </div>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {Object.entries(todayCreatedByProject).map(([projectId, ptasks]) => {
                     const proj = projMap[projectId]
                     return (
                       <div key={projectId}>
                         <button
                           onClick={() => router.push(`/projects/${projectId}`)}
-                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
+                          className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj?.color ?? '#ccc' }} />
-                          <span className="text-xs font-semibold text-gray-600">{proj?.name ?? '알 수 없음'}</span>
-                          <span className="text-[10px] text-gray-400 ml-1">{ptasks.length}개</span>
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{proj?.name ?? '알 수 없음'}</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">{ptasks.length}개</span>
                           <ChevronRight size={11} className="ml-auto text-gray-300" />
                         </button>
-                        <div className="divide-y divide-gray-50">
+                        <div className="divide-y divide-gray-50 dark:divide-gray-700">
                           {ptasks.map(task => {
                             const isDone = doneColIds.has(task.status)
                             const pm = PRIORITY_META[task.priority]
                             const checklist = task.checklist_items ?? []
                             const completed = checklist.filter(i => i.completed).length
                             return (
-                              <div key={task.id} className="flex items-center gap-3 pl-8 pr-4 py-2.5 hover:bg-gray-50 transition-colors group/task">
+                              <div key={task.id} className="flex items-center gap-3 pl-8 pr-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group/task">
                                 <button
                                   onClick={() => isDone ? undoneMutation.mutate(task) : doneMutation.mutate(task)}
                                   disabled={isDone ? !firstColByProject[task.project_id] : !doneColByProject[task.project_id]}
@@ -604,7 +604,7 @@ export default function TodayPage() {
                                 <button
                                   onClick={() => router.push(`/projects/${projectId}`)}
                                   className={cn('flex-1 text-left text-sm truncate',
-                                    isDone ? 'line-through text-gray-400' : 'text-gray-800')}
+                                    isDone ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200')}
                                 >
                                   {task.title}
                                 </button>
@@ -617,8 +617,8 @@ export default function TodayPage() {
                                   {task.priority !== 'normal' && (
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${pm.className}`}>{pm.label}</span>
                                   )}
-                                  {isDone && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">완료</span>}
-                                  {task.task_type === 'meeting' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">일정</span>}
+                                  {isDone && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 font-medium">완료</span>}
+                                  {task.task_type === 'meeting' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium">일정</span>}
                                 </div>
                               </div>
                             )
@@ -633,19 +633,19 @@ export default function TodayPage() {
 
             {/* 오늘 등록된 이슈/기록 */}
             {todayPosts.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <MessageSquare size={14} className="text-purple-500" />
                   <span className="text-sm font-semibold text-purple-600">이슈/기록</span>
-                  <span className="ml-auto text-xs text-gray-400 font-medium">{todayPosts.length}개</span>
+                  <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 font-medium">{todayPosts.length}개</span>
                 </div>
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-gray-50 dark:divide-gray-700">
                   {todayPosts.map(post => {
                     const proj = projMap[post.project_id]
                     const isNote = post.type === 'note'
                     const isClosed = post.status === 'closed'
                     return (
-                      <div key={post.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                      <div key={post.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                         {/* 이슈: 상태 토글 버튼 / 기록: 아이콘만 */}
                         {isNote ? (
                           <FileText size={14} className="text-purple-400 shrink-0" />
@@ -668,20 +668,20 @@ export default function TodayPage() {
                         <Link
                           href={`/projects/${post.project_id}/issues`}
                           className={cn('flex-1 text-sm truncate hover:underline',
-                            isClosed ? 'line-through text-gray-400' : 'text-gray-800')}
+                            isClosed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200')}
                         >
                           {post.title}
                         </Link>
 
                         <div className="flex items-center gap-1.5 shrink-0">
                           {isClosed && (
-                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">
+                            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 font-medium">
                               닫힘
                             </span>
                           )}
                           <span className={cn(
                             'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-                            isNote ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                            isNote ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                           )}>
                             {isNote ? '기록' : '이슈'}
                           </span>

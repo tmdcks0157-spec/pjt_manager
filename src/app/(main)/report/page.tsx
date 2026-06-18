@@ -233,10 +233,10 @@ export default function WeeklyReportPage() {
           {/* 요약 카드 */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mx-auto mb-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-2">
                 <Plus size={15} className="text-blue-500" />
               </div>
-              <p className="text-2xl font-bold">{weekTasks.length}</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{weekTasks.length}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 생성</p>
             </div>
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">

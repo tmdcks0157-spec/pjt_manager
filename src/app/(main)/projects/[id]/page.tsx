@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { use } from 'react'
+import { useTheme } from '@/providers/ThemeProvider'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   useDroppable, type DragEndEvent, type DragStartEvent,
@@ -542,9 +543,9 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
 
   const [expanded, setExpanded] = useState(() => {
     try {
-      const stored: string[] = JSON.parse(localStorage.getItem(`expanded-cards-${task.project_id}`) ?? '[]')
-      return stored.includes(task.id)
-    } catch { return false }
+      const stored: string[] = JSON.parse(localStorage.getItem(`collapsed-cards-${task.project_id}`) ?? '[]')
+      return !stored.includes(task.id)
+    } catch { return true }
   })
   const [showMoveModal, setShowMoveModal] = useState(false)
   const [showActionModal, setShowActionModal] = useState(false)
@@ -562,9 +563,9 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
     setExpanded(v => {
       const next = !v
       try {
-        const stored = new Set<string>(JSON.parse(localStorage.getItem(`expanded-cards-${task.project_id}`) ?? '[]'))
-        next ? stored.add(task.id) : stored.delete(task.id)
-        localStorage.setItem(`expanded-cards-${task.project_id}`, JSON.stringify([...stored]))
+        const stored = new Set<string>(JSON.parse(localStorage.getItem(`collapsed-cards-${task.project_id}`) ?? '[]'))
+        next ? stored.delete(task.id) : stored.add(task.id)
+        localStorage.setItem(`collapsed-cards-${task.project_id}`, JSON.stringify([...stored]))
       } catch {}
       return next
     })
@@ -765,6 +766,7 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isColDragging ? 0.4 : 1 }
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const wipExceeded = column.wip_limit != null && tasks.length > column.wip_limit
+  const { resolvedTheme } = useTheme()
 
   // collapsed 상태에서도 드롭 가능하도록 outer div에 sort+drop ref 통합
   function setOuterRef(el: HTMLDivElement | null) { setSortRef(el); setDropRef(el) }
@@ -807,8 +809,9 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
       </div>
 
       {!collapsed && (
-        <div style={{ backgroundColor: column.color }}
-          className={`flex-1 rounded-xl p-2 space-y-2 min-h-32 transition-colors ${isOver ? 'ring-2 ring-gray-400 ring-offset-1' : ''}`}>
+        <div
+          style={resolvedTheme === 'dark' ? undefined : { backgroundColor: column.color }}
+          className={`flex-1 rounded-xl p-2 space-y-2 min-h-32 transition-colors dark:bg-gray-800/40 ${isOver ? 'ring-2 ring-gray-400 ring-offset-1' : ''}`}>
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map(task => (
               <TaskCard key={task.id} task={task} columns={columns}

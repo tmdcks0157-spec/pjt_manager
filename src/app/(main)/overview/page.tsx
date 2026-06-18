@@ -189,7 +189,7 @@ export default function OverviewPage() {
   }
 
   const TASK_FILTERS: { key: FilterType; label: string; count: number; className: string }[] = [
-    { key: 'all',     label: '전체',      count: stats.total,   className: 'text-gray-700' },
+    { key: 'all',     label: '전체',      count: stats.total,   className: 'text-gray-700 dark:text-gray-300' },
     { key: 'overdue', label: '기한 초과', count: stats.overdue, className: 'text-red-600' },
     { key: 'today',   label: '오늘 마감', count: stats.today,   className: 'text-orange-600' },
     { key: 'urgent',  label: '긴급',      count: stats.urgent,  className: 'text-red-600' },
@@ -197,7 +197,7 @@ export default function OverviewPage() {
   ]
 
   const ISSUE_FILTERS: { key: IssueFilterType; label: string; count: number; className: string }[] = [
-    { key: 'all',    label: '전체', count: issueStats.total,  className: 'text-gray-700' },
+    { key: 'all',    label: '전체', count: issueStats.total,  className: 'text-gray-700 dark:text-gray-300' },
     { key: 'open',   label: '열림', count: issueStats.open,   className: 'text-blue-600' },
     { key: 'closed', label: '닫힘', count: issueStats.closed, className: 'text-gray-500' },
     { key: 'note',   label: '기록', count: issueStats.note,   className: 'text-purple-600' },
@@ -249,7 +249,7 @@ export default function OverviewPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                   filter === f.key
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-transparent'
+                    ? 'bg-gray-900 dark:bg-gray-700 text-white border-transparent'
                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
                 )}
               >
@@ -257,7 +257,7 @@ export default function OverviewPage() {
                 {f.count > 0 && (
                   <span className={cn(
                     'text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                    filter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 ' + f.className
+                    filter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-600/60 ' + f.className
                   )}>
                     {f.count}
                   </span>
@@ -387,7 +387,7 @@ export default function OverviewPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                   issueFilter === f.key
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-transparent'
+                    ? 'bg-gray-900 dark:bg-gray-700 text-white border-transparent'
                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
                 )}
               >
@@ -395,7 +395,7 @@ export default function OverviewPage() {
                 {f.count > 0 && (
                   <span className={cn(
                     'text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                    issueFilter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 ' + f.className
+                    issueFilter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-600/60 ' + f.className
                   )}>
                     {f.count}
                   </span>

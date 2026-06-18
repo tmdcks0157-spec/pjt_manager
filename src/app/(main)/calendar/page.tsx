@@ -84,18 +84,18 @@ function getWeekSunday(date: Date): Date {
 function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
   const [expanded, setExpanded] = useState(() => {
     try {
-      const stored: string[] = JSON.parse(localStorage.getItem('expanded-cal-cards') ?? '[]')
-      return stored.includes(task.id)
-    } catch { return false }
+      const stored: string[] = JSON.parse(localStorage.getItem('collapsed-cal-cards') ?? '[]')
+      return !stored.includes(task.id)
+    } catch { return true }
   })
 
   function toggleExpanded() {
     setExpanded(v => {
       const next = !v
       try {
-        const stored = new Set<string>(JSON.parse(localStorage.getItem('expanded-cal-cards') ?? '[]'))
-        next ? stored.add(task.id) : stored.delete(task.id)
-        localStorage.setItem('expanded-cal-cards', JSON.stringify([...stored]))
+        const stored = new Set<string>(JSON.parse(localStorage.getItem('collapsed-cal-cards') ?? '[]'))
+        next ? stored.delete(task.id) : stored.add(task.id)
+        localStorage.setItem('collapsed-cal-cards', JSON.stringify([...stored]))
       } catch {}
       return next
     })
@@ -734,7 +734,9 @@ export default function CalendarPage() {
           <div className="relative ml-1">
             <button onClick={() => setShowFilter(f => !f)}
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 border rounded-lg transition-colors
-                ${hiddenProjects.size > 0 ? 'border-blue-300 bg-blue-50 text-blue-600' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}>
+                ${hiddenProjects.size > 0
+                  ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
               <SlidersHorizontal size={13} />
               프로젝트 필터
               {hiddenProjects.size > 0 && (
@@ -814,9 +816,9 @@ export default function CalendarPage() {
               {summaryOpen && (
                 <div className="border-t border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
                   {[
-                    { label: '기한 초과', tasks: overdueTasks, badge: 'text-red-500', bg: 'bg-red-50' },
-                    { label: '오늘 마감', tasks: todayDueTasks, badge: 'text-orange-500', bg: 'bg-orange-50' },
-                    { label: '이번 주 마감', tasks: weekDueTasks, badge: 'text-yellow-600', bg: 'bg-yellow-50' },
+                    { label: '기한 초과', tasks: overdueTasks, badge: 'text-red-500', bg: 'bg-red-50 dark:bg-gray-700' },
+                    { label: '오늘 마감', tasks: todayDueTasks, badge: 'text-orange-500', bg: 'bg-orange-50 dark:bg-gray-700' },
+                    { label: '이번 주 마감', tasks: weekDueTasks, badge: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-gray-700' },
                   ].filter(s => s.tasks.length > 0).map(section => (
                     <div key={section.label} className="px-4 py-3">
                       <p className={`text-xs font-semibold mb-2 ${section.badge}`}>{section.label}</p>
@@ -826,7 +828,7 @@ export default function CalendarPage() {
                           return (
                             <div key={task.id}
                               onClick={() => task.due_date && setSelectedDate(new Date(task.due_date))}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-600 ${section.bg} cursor-pointer hover:border-gray-200 dark:hover:border-gray-500 transition-colors`}>
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 ${section.bg} cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-600 transition-colors`}>
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[task.priority]}`} />
                               <span className="text-xs text-gray-700 dark:text-gray-300 font-medium max-w-[160px] truncate">{task.title}</span>
                               {proj && (
