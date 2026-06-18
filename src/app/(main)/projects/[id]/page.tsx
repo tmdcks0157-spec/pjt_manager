@@ -859,6 +859,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [newColName, setNewColName]         = useState('')
   const [newColColor, setNewColColor]       = useState(COLUMN_COLORS[0])
   const [filterPriority, setFilterPriority] = useState<TaskPriority | null>(null)
+  const [filterTag, setFilterTag]           = useState<string | null>(null)
   const [sortByPriority, setSortByPriority] = useState(false)
   const [searchQuery, setSearchQuery]       = useState('')
   const [selectionMode, setSelectionMode]   = useState(false)
@@ -943,10 +944,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const PRIORITY_ORDER: Record<TaskPriority, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
   const q = searchQuery.trim().toLowerCase()
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>()
+    allTasks.filter(t => !t.archived && !t.deleted_at).forEach(t => t.tags?.forEach(tag => tags.add(tag)))
+    return [...tags].sort()
+  }, [allTasks])
+
   const activeTasks = (() => {
     const filtered = allTasks.filter(t =>
       !t.archived && !t.deleted_at &&
       (!filterPriority || t.priority === filterPriority) &&
+      (!filterTag || t.tags?.includes(filterTag)) &&
       (!q || t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
     )
     if (!sortByPriority) return filtered
@@ -1313,6 +1322,32 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
           </div>
+
+          {/* 태그 필터 바 */}
+          {allTags.length > 0 && (
+            <div className="px-8 py-2 border-b border-gray-100 bg-white flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-400 shrink-0">태그</span>
+              {allTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => setFilterTag(prev => prev === tag ? null : tag)}
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium transition-all border-2 ${tagColor(tag)} ${
+                    filterTag === tag ? 'border-gray-500 ring-1 ring-gray-400' : 'border-transparent opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+              {filterTag && (
+                <button
+                  onClick={() => setFilterTag(null)}
+                  className="text-xs px-2 py-0.5 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  초기화
+                </button>
+              )}
+            </div>
+          )}
 
           {/* 요약 통계 바 */}
           {summary.total > 0 && (

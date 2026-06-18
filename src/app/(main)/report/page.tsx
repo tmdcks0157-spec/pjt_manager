@@ -1,11 +1,11 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Task, Project, ProjectColumn } from '@/types'
-import { CheckCircle2, Plus, AlertCircle, TrendingUp, Calendar, FolderKanban, Clock, MessageSquare, FileText } from 'lucide-react'
+import { CheckCircle2, Plus, AlertCircle, TrendingUp, Calendar, FolderKanban, Clock, MessageSquare, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 interface Post {
@@ -25,11 +25,11 @@ const PRIORITY_META: Record<string, { label: string; className: string }> = {
   urgent: { label: '긴급', className: 'bg-red-100 text-red-600' },
 }
 
-function getWeekRange() {
+function getWeekRange(offset = 0) {
   const now = new Date()
-  const day = now.getDay() // 0=일, 1=월 ...
+  const day = now.getDay()
   const diffToMon = (day === 0 ? -6 : 1 - day)
-  const mon = new Date(now); mon.setDate(now.getDate() + diffToMon); mon.setHours(0, 0, 0, 0)
+  const mon = new Date(now); mon.setDate(now.getDate() + diffToMon + offset * 7); mon.setHours(0, 0, 0, 0)
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23, 59, 59, 999)
   return { start: mon, end: sun }
 }
@@ -40,7 +40,8 @@ function fmt(date: Date) {
 
 export default function WeeklyReportPage() {
   const router = useRouter()
-  const { start, end } = useMemo(getWeekRange, [])
+  const [weekOffset, setWeekOffset] = useState(0)
+  const { start, end } = useMemo(() => getWeekRange(weekOffset), [weekOffset])
 
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['projects'],
@@ -184,12 +185,40 @@ export default function WeeklyReportPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       {/* 헤더 */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-          <Calendar size={13} />
-          {fmt(start)} – {fmt(end)}
+      <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+            <Calendar size={13} />
+            {fmt(start)} – {fmt(end)}
+            {weekOffset === 0 && (
+              <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">이번 주</span>
+            )}
+          </div>
+          <h1 className="text-2xl font-bold">주간 리포트</h1>
         </div>
-        <h1 className="text-2xl font-bold">주간 리포트</h1>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setWeekOffset(v => v - 1)}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600"
+          >
+            <ChevronLeft size={14} /> 이전 주
+          </button>
+          {weekOffset !== 0 && (
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-500"
+            >
+              이번 주
+            </button>
+          )}
+          <button
+            onClick={() => setWeekOffset(v => v + 1)}
+            disabled={weekOffset >= 0}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            다음 주 <ChevronRight size={14} />
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
