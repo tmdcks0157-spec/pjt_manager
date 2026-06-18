@@ -50,7 +50,7 @@ function AutoTextarea({
       rows={3}
       style={{ overflow: 'hidden' }}
       className={cn(
-        'w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-300 resize-none transition-all',
+        'w-full text-sm border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 dark:bg-gray-700 dark:text-gray-100 resize-none transition-all',
         className
       )}
     />
@@ -324,18 +324,18 @@ export default function OverviewPage() {
       })()
 
       return (
-        <div className="sticky top-8 bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col max-h-[calc(100vh-4rem)]">
+        <div className="sticky top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden flex flex-col max-h-[calc(100vh-4rem)]">
           {/* 헤더 */}
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 bg-gray-50 shrink-0">
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 shrink-0">
             {proj && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />}
-            <span className="text-xs font-semibold text-gray-500 flex-1 truncate">{proj?.name}</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex-1 truncate">{proj?.name}</span>
             <Link
               href={`/projects/${task.project_id}`}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
             >
               <ExternalLink size={11} /> 칸반
             </Link>
-            <button onClick={() => setSelected(null)} className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onClick={() => setSelected(null)} className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors">
               <X size={14} />
             </button>
           </div>
@@ -348,7 +348,7 @@ export default function OverviewPage() {
               <input
                 value={panelTitle}
                 onChange={e => { setPanelTitle(e.target.value); setPanelDirty(true) }}
-                className="w-full text-sm font-semibold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
+                className="w-full text-sm font-semibold border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 dark:bg-gray-700 dark:text-gray-100 transition-all"
               />
             </div>
 
@@ -396,7 +396,7 @@ export default function OverviewPage() {
                 type="date"
                 value={panelDueDate}
                 onChange={e => { setPanelDueDate(e.target.value); setPanelDirty(true) }}
-                className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all w-full"
+                className="text-sm border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 dark:bg-gray-700 dark:text-gray-100 transition-all w-full"
               />
             </div>
 
@@ -428,7 +428,7 @@ export default function OverviewPage() {
                 </label>
                 <div className="space-y-1.5">
                   {checklist.map(item => (
-                    <div key={item.id} className={cn('flex items-center gap-2 text-xs', item.completed ? 'text-gray-400 line-through' : 'text-gray-700')}>
+                    <div key={item.id} className={cn('flex items-center gap-2 text-xs', item.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-700 dark:text-gray-200')}>
                       {item.completed
                         ? <CheckSquare size={12} className="text-green-400 shrink-0" />
                         : <Square size={12} className="text-gray-300 shrink-0" />}
@@ -441,7 +441,7 @@ export default function OverviewPage() {
           </div>
 
           {/* 푸터 액션 */}
-          <div className="px-5 py-4 border-t border-gray-100 space-y-2 shrink-0">
+          <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 space-y-2 shrink-0">
             {panelDirty && (
               <button
                 onClick={() => updateTaskMutation.mutate()}
@@ -473,18 +473,18 @@ export default function OverviewPage() {
     const isOpen  = post.status === 'open'
 
     return (
-      <div className="sticky top-8 bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col max-h-[calc(100vh-4rem)]">
+      <div className="sticky top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden flex flex-col max-h-[calc(100vh-4rem)]">
         {/* 헤더 */}
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 bg-gray-50 shrink-0">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 shrink-0">
           {proj && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />}
-          <span className="text-xs font-semibold text-gray-500 flex-1 truncate">{proj?.name}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex-1 truncate">{proj?.name}</span>
           <Link
             href={`/projects/${selected.projectId}/issues`}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           >
             <ExternalLink size={11} /> 이슈 페이지
           </Link>
-          <button onClick={() => setSelected(null)} className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={() => setSelected(null)} className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors">
             <X size={14} />
           </button>
         </div>
@@ -565,7 +565,7 @@ export default function OverviewPage() {
 
         {/* 푸터 */}
         {panelDirty && (
-          <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+          <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 shrink-0">
             <button
               onClick={() => updatePostMutation.mutate()}
               disabled={updatePostMutation.isPending || !panelTitle.trim()}
@@ -660,16 +660,16 @@ export default function OverviewPage() {
                     const urgentCount = tasks.filter(t => t.priority === 'urgent').length
 
                     return (
-                      <div key={p.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                      <div key={p.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
                         {/* 프로젝트 헤더 */}
                         <div
                           onClick={() => toggleCollapse(p.id)}
-                          className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                          className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                         >
                           <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                          <span className="text-sm font-semibold flex-1">{p.name}</span>
+                          <span className="text-sm font-semibold flex-1 dark:text-gray-100">{p.name}</span>
                           <div className="flex items-center gap-2 mr-2">
-                            <span className="text-xs text-gray-400">{tasks.length}개</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">{tasks.length}개</span>
                             {urgentCount > 0 && (
                               <span className="flex items-center gap-0.5 text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full font-medium">
                                 <Siren size={10} /> {urgentCount}
@@ -683,7 +683,7 @@ export default function OverviewPage() {
                           </div>
                           <span
                             onClick={e => { e.stopPropagation(); router.push(`/projects/${p.id}`) }}
-                            className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                            className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                           >
                             열기 →
                           </span>
@@ -693,7 +693,7 @@ export default function OverviewPage() {
                         </div>
 
                         {!isCollapsed && (
-                          <div className="divide-y divide-gray-50 border-t border-gray-100">
+                          <div className="divide-y divide-gray-50 dark:divide-gray-700 border-t border-gray-100 dark:border-gray-700">
                             {tasks.map(task => {
                               const col = colMap[task.status]
                               const pm  = PRIORITY_META[task.priority]
@@ -714,13 +714,13 @@ export default function OverviewPage() {
                                   onClick={() => setSelected(isSelected ? null : { kind: 'task', item: task })}
                                   className={cn(
                                     'w-full flex items-center gap-3 px-5 py-3 transition-colors text-left group',
-                                    isSelected ? 'bg-blue-50 border-l-2 border-blue-400' : 'hover:bg-gray-50'
+                                    isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-400' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                                   )}
                                 >
                                   <div className={cn('w-1.5 h-1.5 rounded-full shrink-0 transition-colors',
-                                    isSelected ? 'bg-blue-400' : 'bg-gray-300 group-hover:bg-gray-500')} />
-                                  <span className="flex-1 text-sm text-gray-700 truncate">{task.title}</span>
-                                  {col && <span className="text-[10px] text-gray-400 shrink-0 hidden sm:block">{col.name}</span>}
+                                    isSelected ? 'bg-blue-400' : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-gray-500 dark:group-hover:bg-gray-400')} />
+                                  <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{task.title}</span>
+                                  {col && <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 hidden sm:block">{col.name}</span>}
                                   {checklist.length > 0 && (
                                     <span className="text-[10px] text-gray-400 shrink-0 flex items-center gap-0.5">
                                       <CheckSquare size={10} /> {completedChecklist}/{checklist.length}
@@ -759,13 +759,13 @@ export default function OverviewPage() {
                   <button key={f.key} onClick={() => setIssueFilter(f.key)}
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                      issueFilter === f.key ? 'bg-gray-900 text-white border-transparent' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                      issueFilter === f.key ? 'bg-gray-900 dark:bg-gray-700 text-white border-transparent' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
                     )}
                   >
                     {f.label}
                     {f.count > 0 && (
                       <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                        issueFilter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 ' + f.className)}>
+                        issueFilter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-600/60 ' + f.className)}>
                         {f.count}
                       </span>
                     )}
@@ -791,15 +791,15 @@ export default function OverviewPage() {
                     const openCount   = posts.filter(p => p.type === 'issue' && p.status === 'open').length
 
                     return (
-                      <div key={p.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                      <div key={p.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
                         <div
                           onClick={() => toggleCollapse(`issue-${p.id}`)}
-                          className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                          className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                         >
                           <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                          <span className="text-sm font-semibold flex-1">{p.name}</span>
+                          <span className="text-sm font-semibold flex-1 dark:text-gray-100">{p.name}</span>
                           <div className="flex items-center gap-2 mr-2">
-                            <span className="text-xs text-gray-400">{posts.length}개</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">{posts.length}개</span>
                             {openCount > 0 && (
                               <span className="flex items-center gap-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">
                                 <AlertCircle size={10} /> 열림 {openCount}
@@ -809,7 +809,7 @@ export default function OverviewPage() {
                           <Link
                             href={`/projects/${p.id}/issues`}
                             onClick={e => e.stopPropagation()}
-                            className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors mr-1"
+                            className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-1"
                           >
                             이슈 페이지 →
                           </Link>
@@ -819,7 +819,7 @@ export default function OverviewPage() {
                         </div>
 
                         {!isCollapsed && (
-                          <div className="divide-y divide-gray-50 border-t border-gray-100">
+                          <div className="divide-y divide-gray-50 dark:divide-gray-700 border-t border-gray-100 dark:border-gray-700">
                             {posts.map(post => {
                               const isNote     = post.type === 'note'
                               const isOpen     = post.status === 'open'
@@ -832,19 +832,19 @@ export default function OverviewPage() {
                                   onClick={() => setSelected(isSelected ? null : { kind: 'post', item: post, projectId: p.id })}
                                   className={cn(
                                     'w-full flex items-center gap-3 px-5 py-3 transition-colors text-left group',
-                                    isSelected ? 'bg-blue-50 border-l-2 border-blue-400' : 'hover:bg-gray-50'
+                                    isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-400' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                                   )}
                                 >
                                   {isNote
                                     ? <FileText size={13} className={cn('shrink-0', isSelected ? 'text-blue-400' : 'text-purple-400')} />
                                     : <MessageSquare size={13} className={cn('shrink-0',
                                         isSelected ? 'text-blue-400' : isOpen ? 'text-blue-500' : 'text-gray-400')} />}
-                                  <span className="flex-1 text-sm text-gray-700 truncate">{post.title}</span>
+                                  <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{post.title}</span>
                                   {isNote ? (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium shrink-0">기록</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 font-medium shrink-0">기록</span>
                                   ) : (
                                     <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0',
-                                      isOpen ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500')}>
+                                      isOpen ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400')}>
                                       {isOpen ? '열림' : '닫힘'}
                                     </span>
                                   )}
