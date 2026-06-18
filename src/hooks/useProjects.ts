@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/auth-store'
 import type { Project } from '@/types'
 
 export function useProjects() {
+  const user = useAuthStore((s) => s.user)
   return useQuery<Project[]>({
     queryKey: ['projects'],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')

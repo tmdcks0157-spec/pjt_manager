@@ -4,10 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function LoginPage() {
   const router = useRouter()
   const { login, isLoading } = useAuthStore()
+  const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,6 +19,7 @@ export default function LoginPage() {
     setError('')
     try {
       await login(email, password)
+      queryClient.invalidateQueries()
       router.push('/dashboard')
     } catch {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.')
