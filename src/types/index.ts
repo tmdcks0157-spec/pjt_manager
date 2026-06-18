@@ -69,3 +69,14 @@ export interface User {
   email: string
   name?: string
 }
+
+export interface Post {
+  id: string
+  project_id: string
+  type: 'issue' | 'note'
+  title: string
+  body?: string | null
+  status: 'open' | 'closed'
+  priority: string
+  created_at: string
+}

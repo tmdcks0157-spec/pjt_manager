@@ -2,6 +2,47 @@
 
 ---
 
+## 2026-06-12 (2차)
+
+### 리팩토링 — Custom Hook 분리 (1단계)
+
+**신규 파일**
+- `src/hooks/useProjects.ts` — `queryKey: ['projects']` 공통 훅
+- `src/hooks/useAllColumns.ts` — `queryKey: ['columns']` 공통 훅
+- `src/hooks/useAllTasks.ts` — `queryKey: ['tasks']` 공통 훅
+- `src/lib/constants.ts` — `PRIORITY_META` 중앙화 (6곳 중복 제거)
+- `src/types/index.ts` — `Post` 인터페이스 추가 (4곳 중복 제거)
+
+**적용 파일**: today, overview, report, CreateTaskModal, projects/[id], projects/[id]/issues
+
+**효과**
+- `tasks` 쿼리 중복 11개 → 1개, `columns` 8개 → 1개
+- `invalidateQueries` 키 통일: `['today-tasks']`, `['overview-tasks']` → `['tasks']`
+- 어느 페이지에서 태스크 변경해도 전체 페이지 자동 갱신
+
+### 추가/변경 기능
+
+**이슈 & 기록 페이지** (`/projects/[id]/issues`) 개선
+- 입력 방식: 인라인 폼 → 중앙 모달 (ESC / 배경 클릭 닫기)
+- 타임스탬프: `MM월 DD일` → `YY-MM-DD HH:MM` 형식, 수정 시 "수정 시각" 병기
+- 본문 textarea: `rows=3` → `rows=8` + `resize-y` + 파일 첨부 예정 안내 문구
+- 수정 기능: hover 시 연필 아이콘 → 기존 내용 채워진 모달 재사용
+- 우선순위: 목록에서 모든 항목에 항상 표시 (normal 포함)
+
+**Today 대시보드** (`/today`) 개선
+- 미완료 태스크 섹션 추가: 마감일 없는 활성 태스크 (기본 접힘, 긴급·일정 제외)
+
+**전체 현황 페이지** (`/overview`) 개선
+- 클릭 동작 변경: 페이지 이동 → 우측 디테일 패널 슬라이드인
+- 패널 — 태스크: 제목/설명/메모/우선순위/마감일 인라인 편집 + 완료 처리 버튼
+- 패널 — 이슈/기록: 제목/내용/우선순위 편집 + 이슈 열기·닫기 토글
+- 패널 너비: `w-96` → `w-[540px]`
+- 패널 textarea: 고정 rows → `AutoTextarea` (내용에 맞게 자동 높이 확장)
+- 페이지 이동: "열기 →" / "이슈 페이지 →" 별도 버튼 유지
+- 레이아웃: 패널 미선택 `max-w-5xl` / 선택 시 `max-w-7xl` 2컬럼
+
+---
+
 ## 2026-06-12
 
 ### 추가/변경 기능

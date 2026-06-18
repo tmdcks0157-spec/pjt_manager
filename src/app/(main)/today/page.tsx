@@ -5,7 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Task, Project, ProjectColumn } from '@/types'
+import type { Task, Post } from '@/types'
+import { useProjects } from '@/hooks/useProjects'
+import { useAllColumns } from '@/hooks/useAllColumns'
+import { useAllTasks } from '@/hooks/useAllTasks'
+import { PRIORITY_META } from '@/lib/constants'
 import {
   Sun, Square, CalendarDays, Clock, Siren,
   Users, ChevronRight, CheckCircle2, CheckSquare,
@@ -14,22 +18,6 @@ import {
 import { cn } from '@/lib/utils'
 import CreateTaskModal from '@/components/CreateTaskModal'
 
-const PRIORITY_META: Record<string, { label: string; className: string }> = {
-  low:    { label: '낮음', className: 'bg-gray-100 text-gray-500' },
-  normal: { label: '보통', className: 'bg-blue-100 text-blue-600' },
-  high:   { label: '높음', className: 'bg-orange-100 text-orange-600' },
-  urgent: { label: '긴급', className: 'bg-red-100 text-red-600' },
-}
-
-interface Post {
-  id: string
-  project_id: string
-  type: 'issue' | 'note'
-  title: string
-  status: 'open' | 'closed'
-  priority: string
-  created_at: string
-}
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -47,8 +35,9 @@ export default function TodayPage() {
   const queryClient = useQueryClient()
 
   // ── 모달/폼 상태 ──
-  const [showTaskModal, setShowTaskModal]   = useState(false)
+  const [showTaskModal, setShowTaskModal]     = useState(false)
   const [showDoneSection, setShowDoneSection] = useState(true)
+  const [showNoDueSection, setShowNoDueSection] = useState(false)
   const [showIssueForm, setShowIssueForm] = useState(false)
   const [issueProjectId, setIssueProjectId] = useState('')
   const [issueTitle, setIssueTitle]         = useState('')
@@ -62,34 +51,9 @@ export default function TodayPage() {
   }
 
   // ── queries ──
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('projects').select('*').is('deleted_at', null).eq('archived', false).order('created_at')
-      if (error) throw error
-      return data
-    },
-  })
-
-  const { data: columns = [] } = useQuery<ProjectColumn[]>({
-    queryKey: ['all-columns-today'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('columns').select('*')
-      if (error) throw error
-      return data
-    },
-  })
-
-  const { data: tasks = [], isLoading } = useQuery<Task[]>({
-    queryKey: ['today-tasks'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tasks').select('*, checklist_items(*)')
-        .is('deleted_at', null).eq('archived', false)
-      if (error) throw error
-      return data
-    },
-  })
+  const { data: projects = [] } = useProjects()
+  const { data: columns = [] } = useAllColumns()
+  const { data: tasks = [], isLoading } = useAllTasks()
 
   const todayStart = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString() }, [])
   const todayEnd   = useMemo(() => { const d = new Date(); d.setHours(23,59,59,999); return d.toISOString() }, [])
@@ -149,6 +113,11 @@ export default function TodayPage() {
     return d > today
   }), [activeTasks, today])
 
+  // 마감일 없는 미완료 태스크 (긴급/일정 제외 — 이미 위에서 표시됨)
+  const noDueTasks = useMemo(() => activeTasks.filter(t =>
+    !t.due_date && t.priority !== 'urgent' && t.task_type !== 'meeting'
+  ), [activeTasks])
+
   // 오늘 완료 처리한 태스크 (완료 컬럼 + updated_at 오늘)
   const todayDoneTasks = useMemo(() =>
     tasks.filter(t => doneColIds.has(t.status) && t.updated_at >= todayStart && t.updated_at <= todayEnd),
@@ -189,7 +158,6 @@ export default function TodayPage() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['today-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
   })
@@ -204,9 +172,7 @@ export default function TodayPage() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['today-tasks'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      queryClient.invalidateQueries({ queryKey: ['overview-tasks'] })
     },
   })
 
@@ -241,7 +207,7 @@ export default function TodayPage() {
   })
 
   const totalToday = todayTasks.length + todayMeetings.length
-  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0
+  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0
 
   // ── sub-components ──
   function TaskRow({ task }: { task: Task }) {
@@ -492,7 +458,30 @@ export default function TodayPage() {
               tasks={urgentTasks}
               accent="text-red-600"
             />
-            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayDoneTasks.length === 0 && (
+
+            {/* 미완료 (마감일 없는) 태스크 */}
+            {noDueTasks.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => setShowNoDueSection(p => !p)}
+                  className="w-full flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <ListTodo size={14} className="text-gray-400" />
+                  <span className="text-sm font-semibold text-gray-500">미완료 태스크</span>
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-medium">{noDueTasks.length}개</span>
+                    <ChevronRight size={13} className={cn('text-gray-300 transition-transform', showNoDueSection ? 'rotate-90' : '')} />
+                  </span>
+                </button>
+                {showNoDueSection && (
+                  <div className="divide-y divide-gray-50 dark:divide-gray-700">
+                    {noDueTasks.map(t => <TaskRow key={t.id} task={t} />)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayDoneTasks.length === 0 && (
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center text-gray-400 dark:text-gray-500">
                 <CheckCircle2 size={32} className="mx-auto mb-2 text-green-400" />
                 <p className="text-sm">처리할 항목이 없어요</p>
@@ -722,7 +711,7 @@ export default function TodayPage() {
           columns={columns}
           defaultProjectId={issueProjectId || projects[0]?.id}
           onClose={() => setShowTaskModal(false)}
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['today-tasks'] })}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
         />
       )}
     </div>

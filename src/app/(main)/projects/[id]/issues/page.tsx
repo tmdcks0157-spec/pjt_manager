@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation'
 import { use } from 'react'
 import {
   Plus, X, ChevronLeft, AlertCircle, BookOpen,
-  CheckCircle2, Circle, Trash2, CalendarDays, ChevronDown, ChevronUp,
+  CheckCircle2, Circle, Trash2, Pencil,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PRIORITY_META } from '@/lib/constants'
 
 type PostType = 'issue' | 'note'
 type IssueStatus = 'open' | 'closed'
@@ -29,13 +30,6 @@ interface Post {
   updated_at: string
 }
 
-const PRIORITY_META: Record<PostPriority, { label: string; className: string }> = {
-  low:    { label: '낮음', className: 'bg-gray-100 text-gray-500' },
-  normal: { label: '보통', className: 'bg-blue-100 text-blue-600' },
-  high:   { label: '높음', className: 'bg-orange-100 text-orange-600' },
-  urgent: { label: '긴급', className: 'bg-red-100 text-red-600' },
-}
-
 const SETUP_SQL = `-- Supabase SQL Editor에서 실행해주세요
 CREATE TABLE posts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -53,8 +47,14 @@ ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can CRUD their own posts"
   ON posts FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);`
 
-function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+function fmtTimestamp(d: string) {
+  const date = new Date(d)
+  const yy  = String(date.getFullYear()).slice(2)
+  const mm  = String(date.getMonth() + 1).padStart(2, '0')
+  const dd  = String(date.getDate()).padStart(2, '0')
+  const hh  = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${yy}-${mm}-${dd} ${hh}:${min}`
 }
 
 export default function IssuesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -65,24 +65,58 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   // ── 필터 ──
   const [filter, setFilter] = useState<FilterType>('all')
 
-  // ── 인라인 폼 ──
-  const [showForm, setShowForm] = useState(false)
-  const [formType, setFormType] = useState<PostType>('issue')
-  const [formTitle, setFormTitle] = useState('')
-  const [formBody, setFormBody] = useState('')
-  const [formPriority, setFormPriority] = useState<PostPriority>('normal')
-  const [formError, setFormError] = useState('')
-  const titleRef = useRef<HTMLInputElement>(null)
+  // ── 모달 ──
+  const [showModal, setShowModal] = useState(false)
+  const [editPost, setEditPost] = useState<Post | null>(null)
 
-  // ── 확장 ──
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // ── 폼 필드 ──
+  const [formType, setFormType]         = useState<PostType>('issue')
+  const [formTitle, setFormTitle]       = useState('')
+  const [formBody, setFormBody]         = useState('')
+  const [formPriority, setFormPriority] = useState<PostPriority>('normal')
+  const [formError, setFormError]       = useState('')
+  const titleRef = useRef<HTMLInputElement>(null)
 
   // ── setup ──
   const [setupNeeded, setSetupNeeded] = useState(false)
 
+  function openNew() {
+    setEditPost(null)
+    setFormType('issue')
+    setFormTitle('')
+    setFormBody('')
+    setFormPriority('normal')
+    setFormError('')
+    setShowModal(true)
+  }
+
+  function openEdit(post: Post) {
+    setEditPost(post)
+    setFormType(post.type)
+    setFormTitle(post.title)
+    setFormBody(post.body ?? '')
+    setFormPriority(post.priority)
+    setFormError('')
+    setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setEditPost(null)
+    setFormError('')
+  }
+
   useEffect(() => {
-    if (showForm) setTimeout(() => titleRef.current?.focus(), 50)
-  }, [showForm])
+    if (showModal) setTimeout(() => titleRef.current?.focus(), 50)
+  }, [showModal])
+
+  // ESC 닫기
+  useEffect(() => {
+    if (!showModal) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showModal])
 
   const { data: project } = useQuery({
     queryKey: ['project', id],
@@ -128,7 +162,27 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts', id] })
-      setFormTitle(''); setFormBody(''); setFormPriority('normal'); setShowForm(false)
+      closeModal()
+    },
+    onError: (e: Error) => setFormError(e.message),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editPost) return
+      setFormError('')
+      const { error } = await supabase.from('posts').update({
+        type: formType,
+        title: formTitle.trim(),
+        body: formBody.trim() || null,
+        priority: formType === 'note' ? 'normal' : formPriority,
+        updated_at: new Date().toISOString(),
+      }).eq('id', editPost.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts', id] })
+      closeModal()
     },
     onError: (e: Error) => setFormError(e.message),
   })
@@ -169,6 +223,8 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     { key: 'note',   label: '기록',      count: notes.length },
   ]
 
+  const isPending = addMutation.isPending || updateMutation.isPending
+
   if (setupNeeded) {
     return (
       <div className="p-8 max-w-2xl mx-auto">
@@ -203,90 +259,14 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         {project && <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
         <h1 className="text-lg font-bold flex-1 truncate dark:text-gray-100">{project?.name ?? '...'} — 이슈 & 기록</h1>
         <button
-          onClick={() => { setShowForm(v => !v); setFormError('') }}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            showForm ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200' : 'bg-gray-900 text-white hover:bg-gray-700'
-          )}
+          onClick={openNew}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 transition-colors"
+
         >
-          {showForm ? <X size={14} /> : <Plus size={14} />}
-          {showForm ? '닫기' : '추가'}
+          <Plus size={14} /> 추가
         </button>
       </div>
 
-      {/* 인라인 추가 폼 */}
-      {showForm && (
-        <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 space-y-4">
-          {/* 타입 선택 */}
-          <div className="flex gap-2">
-            <button onClick={() => setFormType('issue')}
-              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                formType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400')}>
-              <AlertCircle size={12} /> 이슈
-            </button>
-            <button onClick={() => setFormType('note')}
-              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                formType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400')}>
-              <BookOpen size={12} /> 기록
-            </button>
-          </div>
-
-          {/* 제목 */}
-          <input
-            ref={titleRef}
-            value={formTitle}
-            onChange={e => { setFormTitle(e.target.value); setFormError('') }}
-            onKeyDown={e => { if (e.key === 'Enter' && formTitle.trim()) addMutation.mutate() }}
-            placeholder={formType === 'issue' ? '이슈 제목 (필수)' : '기록 제목 (필수)'}
-            className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 dark:border-gray-600 focus:border-gray-800 dark:focus:border-gray-400 pb-1.5 transition-colors bg-transparent dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-          />
-
-          {/* 내용 */}
-          <textarea
-            value={formBody}
-            onChange={e => setFormBody(e.target.value)}
-            placeholder={formType === 'issue' ? '상세 내용 (선택)' : '내용 입력...'}
-            rows={3}
-            className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none"
-          />
-
-          {/* 우선순위 (이슈만) */}
-          {formType === 'issue' && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-400 dark:text-gray-500">우선순위</span>
-              {(Object.keys(PRIORITY_META) as PostPriority[]).map(p => (
-                <button key={p} onClick={() => setFormPriority(p)}
-                  className={cn('px-2.5 py-1 rounded-full text-xs font-medium transition-all border-2',
-                    PRIORITY_META[p].className,
-                    formPriority === p ? 'border-gray-500' : 'border-transparent')}>
-                  {PRIORITY_META[p].label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* 에러 + 액션 */}
-          {formError && (
-            <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</p>
-          )}
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">{formTitle.trim() ? '' : '제목을 입력해주세요'}</p>
-            <div className="flex gap-2">
-              <button onClick={() => { setShowForm(false); setFormTitle(''); setFormBody(''); setFormError('') }}
-                className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">
-                취소
-              </button>
-              <button
-                onClick={() => addMutation.mutate()}
-                disabled={!formTitle.trim() || addMutation.isPending}
-                className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {addMutation.isPending ? '저장 중...' : formType === 'issue' ? '이슈 등록' : '기록 저장'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 필터 바 */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
@@ -309,7 +289,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         ))}
       </div>
 
-      {/* 통합 피드 */}
+      {/* 목록 */}
       {isLoading ? (
         <p className="text-sm text-gray-400 dark:text-gray-500">불러오는 중...</p>
       ) : filtered.length === 0 ? (
@@ -318,7 +298,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             {filter === 'note' ? <BookOpen size={18} className="opacity-50" /> : <AlertCircle size={18} className="opacity-50" />}
           </div>
           <p className="text-sm">항목이 없습니다.</p>
-          <button onClick={() => setShowForm(true)} className="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
+          <button onClick={openNew} className="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
             새 항목 추가
           </button>
         </div>
@@ -328,7 +308,6 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             const isIssue = post.type === 'issue'
             const isOpen  = post.status === 'open'
             const pm = PRIORITY_META[post.priority]
-            const isExpanded = expandedId === post.id
 
             return (
               <div key={post.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
@@ -336,10 +315,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                   {/* 상태 아이콘 */}
                   {isIssue ? (
                     <button
-                      onClick={() => toggleStatusMutation.mutate({
-                        postId: post.id,
-                        status: isOpen ? 'closed' : 'open',
-                      })}
+                      onClick={() => toggleStatusMutation.mutate({ postId: post.id, status: isOpen ? 'closed' : 'open' })}
                       className="mt-0.5 shrink-0 transition-colors"
                       title={isOpen ? '이슈 닫기' : '이슈 다시 열기'}
                     >
@@ -354,7 +330,6 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                   {/* 본문 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {/* 타입 레이블 */}
                       <span className={cn(
                         'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
                         isIssue
@@ -364,46 +339,46 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                         {isIssue ? (isOpen ? '열림' : '닫힘') : '기록'}
                       </span>
 
-                      <button
-                        onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                        className="text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-400 text-left flex-1"
-                      >
+                      <span className={cn('text-sm font-medium flex-1 dark:text-gray-200', !isOpen && 'line-through text-gray-400 dark:text-gray-500')}>
                         {post.title}
-                      </button>
+                      </span>
 
-                      {isIssue && post.priority !== 'normal' && (
+                      {isIssue && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${pm.className}`}>
                           {pm.label}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
-                      <CalendarDays size={10} />
-                      {fmtDate(post.created_at)}
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                      {fmtTimestamp(post.created_at)}
+                      {post.updated_at !== post.created_at && (
+                        <span className="ml-1.5 text-gray-300 dark:text-gray-600">(수정 {fmtTimestamp(post.updated_at)})</span>
+                      )}
                     </p>
 
-                    {/* 미리보기 (접혀 있을 때) */}
-                    {!isExpanded && post.body && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-1">{post.body}</p>
-                    )}
+                    {post.body && (
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5">
+                        {post.body}
+                      </p>
 
-                    {/* 펼쳐진 본문 */}
-                    {isExpanded && post.body && (
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5">{post.body}</p>
                     )}
                   </div>
 
                   {/* 우측 액션 */}
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-                    {post.body && (
-                      <button onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                        {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                      </button>
-                    )}
-                    <button onClick={() => deleteMutation.mutate(post.id)}
-                      className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <button
+                      onClick={() => openEdit(post)}
+                      className="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                      title="수정"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => { if (confirm('삭제하시겠습니까?')) deleteMutation.mutate(post.id) }}
+                      className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="삭제"
+                    >
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -411,6 +386,120 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ── 모달 ── */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={e => { if (e.target === e.currentTarget) closeModal() }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900">
+                {editPost ? '이슈 / 기록 수정' : '이슈 / 기록 추가'}
+              </h2>
+              <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* 모달 본문 */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* 타입 선택 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFormType('issue')}
+                  className={cn('flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all',
+                    formType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400')}
+                >
+                  <AlertCircle size={13} /> 이슈
+                </button>
+                <button
+                  onClick={() => setFormType('note')}
+                  className={cn('flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all',
+                    formType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400')}
+                >
+                  <BookOpen size={13} /> 기록
+                </button>
+              </div>
+
+              {/* 제목 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  제목 <span className="text-red-400">*</span>
+                </label>
+                <input
+                  ref={titleRef}
+                  value={formTitle}
+                  onChange={e => { setFormTitle(e.target.value); setFormError('') }}
+                  placeholder={formType === 'issue' ? '이슈 제목을 입력하세요' : '기록 제목을 입력하세요'}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
+                />
+              </div>
+
+              {/* 내용 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  내용
+                  <span className="ml-1.5 font-normal text-gray-400">(선택 · 추후 파일 첨부 지원 예정)</span>
+                </label>
+                <textarea
+                  value={formBody}
+                  onChange={e => setFormBody(e.target.value)}
+                  placeholder={formType === 'issue'
+                    ? '발생 상황, 재현 방법, 영향 범위 등을 자세히 적어주세요'
+                    : '메모, 회의록, 학습 내용 등을 자유롭게 기록하세요'}
+                  rows={8}
+                  className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 resize-y min-h-[160px] transition-all"
+                />
+              </div>
+
+              {/* 우선순위 (이슈만) */}
+              {formType === 'issue' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">우선순위</label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(Object.keys(PRIORITY_META) as PostPriority[]).map(p => (
+                      <button key={p} onClick={() => setFormPriority(p)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
+                          PRIORITY_META[p].className,
+                          formPriority === p ? 'border-gray-500 ring-2 ring-offset-1 ring-gray-300' : 'border-transparent'
+                        )}>
+                        {PRIORITY_META[p].label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {formError && (
+                <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</p>
+              )}
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+              <button onClick={closeModal}
+                className="px-4 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors">
+                취소
+              </button>
+              <button
+                onClick={() => editPost ? updateMutation.mutate() : addMutation.mutate()}
+                disabled={!formTitle.trim() || isPending}
+                className="px-5 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {isPending
+                  ? '저장 중...'
+                  : editPost
+                    ? '수정 완료'
+                    : formType === 'issue' ? '이슈 등록' : '기록 저장'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
