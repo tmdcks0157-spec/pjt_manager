@@ -29,13 +29,13 @@ interface ConfirmOptions {
 function ConfirmModal({ options, onClose }: { options: ConfirmOptions; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-sm font-bold leading-snug">{options.title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0 mt-0.5"><X size={15} /></button>
+          <h2 className="text-sm font-bold leading-snug dark:text-gray-100">{options.title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0 mt-0.5"><X size={15} /></button>
         </div>
         {options.message && (
-          <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{options.message}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line">{options.message}</p>
         )}
         <div className="flex gap-2 pt-1">
           <button
@@ -43,14 +43,14 @@ function ConfirmModal({ options, onClose }: { options: ConfirmOptions; onClose: 
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
               options.danger
                 ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-gray-900 text-white hover:bg-gray-700'
+                : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600'
             }`}
           >
             {options.confirmText ?? '확인'}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             취소
           </button>
@@ -71,26 +71,26 @@ function EditProjectModal({ project, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-96 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-96 p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold">프로젝트 수정</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+          <h2 className="text-sm font-bold dark:text-gray-100">프로젝트 수정</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X size={16} /></button>
         </div>
         <input
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="프로젝트 이름"
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
         />
         <input
           value={description}
           onChange={e => setDescription(e.target.value)}
           placeholder="설명 (선택)"
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
         />
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">색상:</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">색상:</span>
           {PROJECT_COLORS.map(c => (
             <button
               key={c}
@@ -104,13 +104,13 @@ function EditProjectModal({ project, onClose, onSave }: {
           <button
             onClick={() => { onSave({ name, description, color }); onClose() }}
             disabled={!name.trim()}
-            className="flex-1 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors"
+            className="flex-1 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
           >
             저장
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             취소
           </button>
@@ -313,7 +313,7 @@ export default function DashboardPage() {
     return (
       <div
         onClick={() => !isArchived && router.push(`/projects/${project.id}`)}
-        className={`p-5 bg-white border border-gray-200 rounded-xl transition-all group relative ${isArchived ? 'opacity-70 cursor-default' : 'hover:shadow-md cursor-pointer'}`}
+        className={`p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl transition-all group relative ${isArchived ? 'opacity-70 cursor-default' : 'hover:shadow-md cursor-pointer'}`}
       >
         <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
           {!isArchived && (
@@ -378,21 +378,21 @@ export default function DashboardPage() {
             </span>
           )}
         </div>
-        <h3 className="font-semibold text-sm mb-1 truncate pr-12">{project.name}</h3>
+        <h3 className="font-semibold text-sm mb-1 truncate pr-12 dark:text-gray-100">{project.name}</h3>
         {project.description && (
-          <p className="text-xs text-gray-400 truncate mb-3">{project.description}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 truncate mb-3">{project.description}</p>
         )}
 
         {total > 0 && (
           <div className="mt-3 space-y-2">
-            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${pct}%`, backgroundColor: project.color }}
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">{done}/{total} 완료</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{done}/{total} 완료</span>
               <div className="flex items-center gap-2">
                 {overdue > 0 && (
                   <span className="text-xs text-red-500 font-medium flex items-center gap-0.5">
@@ -429,65 +429,65 @@ export default function DashboardPage() {
       {/* 상단 요약 카드 */}
       {allTasks.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-              <Layers size={16} className="text-gray-500" />
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+              <Layers size={16} className="text-gray-500 dark:text-gray-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold leading-none">{stats.total}</p>
-              <p className="text-xs text-gray-400 mt-1">전체</p>
+              <p className="text-2xl font-bold leading-none dark:text-gray-100">{stats.total}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">전체</p>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center shrink-0">
               <CheckCircle2 size={16} className="text-green-500" />
             </div>
             <div>
-              <p className="text-2xl font-bold leading-none">{stats.done}</p>
-              <p className="text-xs text-gray-400 mt-1">완료</p>
+              <p className="text-2xl font-bold leading-none dark:text-gray-100">{stats.done}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">완료</p>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
               <Clock size={16} className="text-orange-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold leading-none">{stats.dueToday}</p>
-              <p className="text-xs text-gray-400 mt-1">오늘 마감</p>
+              <p className="text-2xl font-bold leading-none dark:text-gray-100">{stats.dueToday}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">오늘 마감</p>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center shrink-0">
               <AlertCircle size={16} className="text-red-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold leading-none">{stats.overdue}</p>
-              <p className="text-xs text-gray-400 mt-1">기한 초과</p>
+              <p className="text-2xl font-bold leading-none dark:text-gray-100">{stats.overdue}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">기한 초과</p>
             </div>
           </div>
-          <div className={`border rounded-xl p-4 flex items-center gap-3 ${stats.urgent > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.urgent > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
-              <Siren size={16} className={stats.urgent > 0 ? 'text-red-500' : 'text-gray-400'} />
+          <div className={`border rounded-xl p-4 flex items-center gap-3 ${stats.urgent > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.urgent > 0 ? 'bg-red-100 dark:bg-red-900/40' : 'bg-gray-100 dark:bg-gray-700'}`}>
+              <Siren size={16} className={stats.urgent > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'} />
             </div>
             <div>
-              <p className={`text-2xl font-bold leading-none ${stats.urgent > 0 ? 'text-red-600' : ''}`}>{stats.urgent}</p>
-              <p className="text-xs text-gray-400 mt-1">긴급</p>
+              <p className={`text-2xl font-bold leading-none ${stats.urgent > 0 ? 'text-red-600 dark:text-red-400' : 'dark:text-gray-100'}`}>{stats.urgent}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">긴급</p>
             </div>
           </div>
-          <div className={`border rounded-xl p-4 flex items-center gap-3 ${stats.high > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'}`}>
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.high > 0 ? 'bg-orange-100' : 'bg-gray-100'}`}>
-              <TrendingUp size={16} className={stats.high > 0 ? 'text-orange-500' : 'text-gray-400'} />
+          <div className={`border rounded-xl p-4 flex items-center gap-3 ${stats.high > 0 ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.high > 0 ? 'bg-orange-100 dark:bg-orange-900/40' : 'bg-gray-100 dark:bg-gray-700'}`}>
+              <TrendingUp size={16} className={stats.high > 0 ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'} />
             </div>
             <div>
-              <p className={`text-2xl font-bold leading-none ${stats.high > 0 ? 'text-orange-600' : ''}`}>{stats.high}</p>
-              <p className="text-xs text-gray-400 mt-1">높음</p>
+              <p className={`text-2xl font-bold leading-none ${stats.high > 0 ? 'text-orange-600 dark:text-orange-400' : 'dark:text-gray-100'}`}>{stats.high}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">높음</p>
             </div>
           </div>
         </div>
       )}
 
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <h1 className="text-xl font-bold mr-auto">프로젝트</h1>
+        <h1 className="text-xl font-bold mr-auto dark:text-gray-100">프로젝트</h1>
         <div className="flex items-center gap-1">
           <ArrowUpDown size={13} className="text-gray-400 mr-0.5" />
           {SORT_OPTIONS.map(opt => (
@@ -496,8 +496,8 @@ export default function DashboardPage() {
               onClick={() => setSortOrder(opt.key)}
               className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
                 sortOrder === opt.key
-                  ? 'bg-gray-900 text-white border-transparent'
-                  : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-transparent'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
               }`}
             >
               {opt.label}
@@ -514,23 +514,23 @@ export default function DashboardPage() {
       </div>
 
       {showForm && (
-        <div className="mb-6 p-5 border border-gray-200 rounded-xl bg-white space-y-4">
-          <h2 className="font-semibold text-sm text-gray-700">새 프로젝트 만들기</h2>
+        <div className="mb-6 p-5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 space-y-4">
+          <h2 className="font-semibold text-sm text-gray-700 dark:text-gray-300">새 프로젝트 만들기</h2>
           <input
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="프로젝트 이름"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
           />
           <input
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="설명 (선택)"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
           />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">색상:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">색상:</span>
             {PROJECT_COLORS.map(c => (
               <button
                 key={c}
@@ -544,13 +544,13 @@ export default function DashboardPage() {
             <button
               onClick={() => createMutation.mutate({ name, description, color })}
               disabled={!name || createMutation.isPending}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
             >
               만들기
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               취소
             </button>
@@ -582,12 +582,12 @@ export default function DashboardPage() {
             <div className="mt-10">
               <button
                 onClick={() => setShowArchived(v => !v)}
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-4"
+                className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-4"
               >
                 {showArchived ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 <Archive size={14} />
                 보관된 프로젝트
-                <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{archivedProjects.length}</span>
+                <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full">{archivedProjects.length}</span>
               </button>
               {showArchived && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -604,22 +604,22 @@ export default function DashboardPage() {
             <div className="mt-10">
               <button
                 onClick={() => setShowTrash(v => !v)}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-4"
+                className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors mb-4"
               >
                 {showTrash ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 <Trash2 size={14} />
                 휴지통
-                <span className="text-xs bg-red-50 text-red-400 px-1.5 py-0.5 rounded-full">{deletedProjects.length}</span>
+                <span className="text-xs bg-red-50 dark:bg-red-900/30 text-red-400 px-1.5 py-0.5 rounded-full">{deletedProjects.length}</span>
               </button>
               {showTrash && (
                 <div className="space-y-2">
                   {deletedProjects.map(project => (
-                    <div key={project.id} className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl group">
+                    <div key={project.id} className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl group">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-2.5 h-2.5 rounded-full shrink-0 opacity-50" style={{ backgroundColor: project.color }} />
-                        <span className="text-sm text-gray-400 truncate line-through">{project.name}</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500 truncate line-through">{project.name}</span>
                         {project.description && (
-                          <span className="text-xs text-gray-300 truncate hidden sm:block">{project.description}</span>
+                          <span className="text-xs text-gray-300 dark:text-gray-600 truncate hidden sm:block">{project.description}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0 ml-3">

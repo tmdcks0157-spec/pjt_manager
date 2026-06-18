@@ -173,10 +173,10 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     return (
       <div className="p-8 max-w-2xl mx-auto">
         <button onClick={() => router.push(`/projects/${id}`)}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
+          className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 mb-6 transition-colors">
           <ChevronLeft size={16} /> 칸반 보드로
         </button>
-        <h1 className="text-2xl font-bold mb-4">이슈 & 기록</h1>
+        <h1 className="text-2xl font-bold mb-4 dark:text-gray-100">이슈 & 기록</h1>
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-2 text-amber-700 font-semibold">
             <AlertCircle size={16} /> 초기 설정이 필요합니다
@@ -197,16 +197,16 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       {/* 헤더 */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.push(`/projects/${id}`)}
-          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+          className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
           <ChevronLeft size={16} />
         </button>
         {project && <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
-        <h1 className="text-lg font-bold flex-1 truncate">{project?.name ?? '...'} — 이슈 & 기록</h1>
+        <h1 className="text-lg font-bold flex-1 truncate dark:text-gray-100">{project?.name ?? '...'} — 이슈 & 기록</h1>
         <button
           onClick={() => { setShowForm(v => !v); setFormError('') }}
           className={cn(
             'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            showForm ? 'bg-gray-100 text-gray-700' : 'bg-gray-900 text-white hover:bg-gray-700'
+            showForm ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200' : 'bg-gray-900 text-white hover:bg-gray-700'
           )}
         >
           {showForm ? <X size={14} /> : <Plus size={14} />}
@@ -216,17 +216,17 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
       {/* 인라인 추가 폼 */}
       {showForm && (
-        <div className="bg-white border-2 border-gray-200 rounded-2xl p-5 mb-6 space-y-4">
+        <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-5 mb-6 space-y-4">
           {/* 타입 선택 */}
           <div className="flex gap-2">
             <button onClick={() => setFormType('issue')}
               className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                formType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400')}>
+                formType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400')}>
               <AlertCircle size={12} /> 이슈
             </button>
             <button onClick={() => setFormType('note')}
               className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all',
-                formType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400')}>
+                formType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400')}>
               <BookOpen size={12} /> 기록
             </button>
           </div>
@@ -238,7 +238,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             onChange={e => { setFormTitle(e.target.value); setFormError('') }}
             onKeyDown={e => { if (e.key === 'Enter' && formTitle.trim()) addMutation.mutate() }}
             placeholder={formType === 'issue' ? '이슈 제목 (필수)' : '기록 제목 (필수)'}
-            className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 focus:border-gray-800 pb-1.5 transition-colors bg-transparent"
+            className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 dark:border-gray-600 focus:border-gray-800 dark:focus:border-gray-400 pb-1.5 transition-colors bg-transparent dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
 
           {/* 내용 */}
@@ -247,13 +247,13 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             onChange={e => setFormBody(e.target.value)}
             placeholder={formType === 'issue' ? '상세 내용 (선택)' : '내용 입력...'}
             rows={3}
-            className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+            className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none"
           />
 
           {/* 우선순위 (이슈만) */}
           {formType === 'issue' && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-400">우선순위</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">우선순위</span>
               {(Object.keys(PRIORITY_META) as PostPriority[]).map(p => (
                 <button key={p} onClick={() => setFormPriority(p)}
                   className={cn('px-2.5 py-1 rounded-full text-xs font-medium transition-all border-2',
@@ -273,7 +273,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             <p className="text-xs text-gray-400">{formTitle.trim() ? '' : '제목을 입력해주세요'}</p>
             <div className="flex gap-2">
               <button onClick={() => { setShowForm(false); setFormTitle(''); setFormBody(''); setFormError('') }}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">
                 취소
               </button>
               <button
@@ -296,13 +296,13 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
               filter === f.key
                 ? 'bg-gray-900 text-white border-transparent'
-                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
             )}>
             {f.label}
             {f.count > 0 && (
               <span className={cn(
                 'text-[10px] font-bold px-1.5 py-0.5 rounded-full',
-                filter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                filter === f.key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
               )}>{f.count}</span>
             )}
           </button>
@@ -311,19 +311,19 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
       {/* 통합 피드 */}
       {isLoading ? (
-        <p className="text-sm text-gray-400">불러오는 중...</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">불러오는 중...</p>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+        <div className="text-center py-16 text-gray-400 dark:text-gray-500">
+          <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
             {filter === 'note' ? <BookOpen size={18} className="opacity-50" /> : <AlertCircle size={18} className="opacity-50" />}
           </div>
           <p className="text-sm">항목이 없습니다.</p>
-          <button onClick={() => setShowForm(true)} className="mt-2 text-xs text-gray-500 hover:text-gray-800 underline">
+          <button onClick={() => setShowForm(true)} className="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline">
             새 항목 추가
           </button>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
           {filtered.map(post => {
             const isIssue = post.type === 'issue'
             const isOpen  = post.status === 'open'
@@ -331,7 +331,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             const isExpanded = expandedId === post.id
 
             return (
-              <div key={post.id} className="group hover:bg-gray-50 transition-colors">
+              <div key={post.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex items-start gap-3 px-5 py-4">
                   {/* 상태 아이콘 */}
                   {isIssue ? (
@@ -366,7 +366,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                        className="text-sm font-medium text-gray-800 hover:text-gray-600 text-left flex-1"
+                        className="text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-400 text-left flex-1"
                       >
                         {post.title}
                       </button>
@@ -378,19 +378,19 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                       )}
                     </div>
 
-                    <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
                       <CalendarDays size={10} />
                       {fmtDate(post.created_at)}
                     </p>
 
                     {/* 미리보기 (접혀 있을 때) */}
                     {!isExpanded && post.body && (
-                      <p className="text-xs text-gray-500 mt-1.5 line-clamp-1">{post.body}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-1">{post.body}</p>
                     )}
 
                     {/* 펼쳐진 본문 */}
                     {isExpanded && post.body && (
-                      <p className="mt-2 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap bg-gray-50 rounded-xl px-3 py-2.5">{post.body}</p>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5">{post.body}</p>
                     )}
                   </div>
 
@@ -398,12 +398,12 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                     {post.body && (
                       <button onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                        className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                         {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                       </button>
                     )}
                     <button onClick={() => deleteMutation.mutate(post.id)}
-                      className="p-1.5 text-gray-300 hover:text-red-400 rounded-lg hover:bg-red-50 transition-colors">
+                      className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                       <Trash2 size={13} />
                     </button>
                   </div>

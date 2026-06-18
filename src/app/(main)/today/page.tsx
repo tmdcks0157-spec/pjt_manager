@@ -252,7 +252,7 @@ export default function TodayPage() {
     const completed = checklist.filter(i => i.completed).length
 
     return (
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
         <button
           onClick={() => hasDoneCol && doneMutation.mutate(task)}
           disabled={!hasDoneCol}
@@ -267,7 +267,7 @@ export default function TodayPage() {
           className="flex-1 text-left flex items-center gap-2 min-w-0"
         >
           {proj && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />}
-          <span className="text-sm text-gray-800 truncate">{task.title}</span>
+          <span className="text-sm text-gray-800 dark:text-gray-200 truncate">{task.title}</span>
         </button>
         <div className="flex items-center gap-1.5 shrink-0">
           {checklist.length > 0 && (
@@ -290,13 +290,13 @@ export default function TodayPage() {
   }) {
     if (tasks.length === 0) return null
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
           {icon}
           <span className={`text-sm font-semibold ${accent}`}>{title}</span>
-          <span className="ml-auto text-xs text-gray-400 font-medium">{count}개</span>
+          <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 font-medium">{count}개</span>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-gray-50 dark:divide-gray-700">
           {tasks.map(t => <TaskRow key={t.id} task={t} />)}
         </div>
       </div>
@@ -307,10 +307,10 @@ export default function TodayPage() {
     <div className="p-8 max-w-7xl mx-auto">
       {/* 헤더 */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+        <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 mb-2">
           <Sun size={14} /> {fmtToday()}
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">{getGreeting()}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{getGreeting()}</h1>
       </div>
 
       {/* ── 빠른 추가 ── */}
@@ -319,7 +319,7 @@ export default function TodayPage() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowTaskModal(true)}
-            className="flex-1 flex items-center gap-2.5 px-4 py-3.5 bg-white border-2 border-dashed border-gray-200 rounded-2xl hover:border-gray-900 hover:bg-gray-50 transition-all text-sm text-gray-400 hover:text-gray-700 group font-medium"
+            className="flex-1 flex items-center gap-2.5 px-4 py-3.5 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-2xl hover:border-gray-900 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 group font-medium"
           >
             <div className="w-6 h-6 rounded-lg bg-gray-100 group-hover:bg-gray-900 flex items-center justify-center transition-all">
               <Plus size={13} className="text-gray-500 group-hover:text-white transition-colors" />
@@ -332,8 +332,8 @@ export default function TodayPage() {
             className={cn(
               'flex-1 flex items-center gap-2.5 px-4 py-3.5 border-2 rounded-2xl transition-all text-sm font-medium',
               showIssueForm
-                ? 'bg-gray-900 border-gray-900 text-white'
-                : 'bg-white border-dashed border-gray-200 hover:border-gray-900 hover:bg-gray-50 text-gray-400 hover:text-gray-700'
+                ? 'bg-gray-900 dark:bg-gray-700 border-gray-900 dark:border-gray-600 text-white'
+                : 'bg-white dark:bg-gray-800 border-dashed border-gray-200 dark:border-gray-600 hover:border-gray-900 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             )}
           >
             <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center transition-all',
@@ -346,7 +346,7 @@ export default function TodayPage() {
 
         {/* 이슈/기록 인라인 폼 */}
         {showIssueForm && (
-          <div className="bg-white border-2 border-gray-200 rounded-2xl p-5 space-y-4">
+          <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-2xl p-5 space-y-4">
             {/* 프로젝트 + 타입 */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex gap-2">
@@ -364,7 +364,7 @@ export default function TodayPage() {
               <select
                 value={issueProjectId}
                 onChange={e => setIssueProjectId(e.target.value)}
-                className="ml-auto text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50 text-gray-700"
+                className="ml-auto text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
               >
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -376,7 +376,7 @@ export default function TodayPage() {
               value={issueTitle}
               onChange={e => setIssueTitle(e.target.value)}
               placeholder={issuePostType === 'issue' ? '이슈 제목 (필수)' : '기록 제목 (필수)'}
-              className="w-full text-sm font-semibold focus:outline-none border-b-2 border-gray-200 focus:border-gray-800 pb-1.5 transition-colors bg-transparent"
+              className="w-full text-sm font-semibold text-gray-900 dark:text-gray-100 focus:outline-none border-b-2 border-gray-200 dark:border-gray-600 focus:border-gray-800 dark:focus:border-gray-400 pb-1.5 transition-colors bg-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
 
             {/* 본문 */}
@@ -385,7 +385,7 @@ export default function TodayPage() {
               onChange={e => setIssueBody(e.target.value)}
               placeholder={issuePostType === 'issue' ? '상세 내용 (선택)' : '내용 입력...'}
               rows={3}
-              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+              className="w-full text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
 
             {/* 우선순위 (이슈만) */}
@@ -426,27 +426,27 @@ export default function TodayPage() {
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">{totalToday}</p>
-          <p className="text-xs text-gray-400 mt-0.5">오늘 할 일</p>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalToday}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">오늘 할 일</p>
         </div>
         <div className={cn('border rounded-xl p-4 text-center',
-          overdueTasks.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200')}>
-          <p className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          overdueTasks.length > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')}>
+          <p className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
             {overdueTasks.length}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">기한 초과</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기한 초과</p>
         </div>
         <div className={cn('border rounded-xl p-4 text-center',
-          urgentTasks.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200')}>
-          <p className={`text-2xl font-bold ${urgentTasks.length > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+          urgentTasks.length > 0 ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700')}>
+          <p className={`text-2xl font-bold ${urgentTasks.length > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'}`}>
             {urgentTasks.length}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">긴급</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">긴급</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-indigo-600">{todayMeetings.length}</p>
-          <p className="text-xs text-gray-400 mt-0.5">오늘 일정</p>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{todayMeetings.length}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">오늘 일정</p>
         </div>
       </div>
 
@@ -493,7 +493,7 @@ export default function TodayPage() {
               accent="text-red-600"
             />
             {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && todayDoneTasks.length === 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center text-gray-400 dark:text-gray-500">
                 <CheckCircle2 size={32} className="mx-auto mb-2 text-green-400" />
                 <p className="text-sm">처리할 항목이 없어요</p>
               </div>
@@ -705,7 +705,7 @@ export default function TodayPage() {
             )}
 
             {todayCreatedTasks.length === 0 && todayPosts.length === 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center text-gray-400 dark:text-gray-500">
                 <Plus size={32} className="mx-auto mb-2 text-gray-200" />
                 <p className="text-sm">위 버튼으로 등록해보세요</p>
               </div>

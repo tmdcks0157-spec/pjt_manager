@@ -61,13 +61,13 @@ interface ConfirmOptions {
 function ConfirmModal({ options, onClose }: { options: ConfirmOptions; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-sm font-bold leading-snug">{options.title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0 mt-0.5"><X size={15} /></button>
+          <h2 className="text-sm font-bold leading-snug dark:text-gray-100">{options.title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0 mt-0.5"><X size={15} /></button>
         </div>
         {options.message && (
-          <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{options.message}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line">{options.message}</p>
         )}
         <div className="flex gap-2 pt-1">
           <button
@@ -79,7 +79,7 @@ function ConfirmModal({ options, onClose }: { options: ConfirmOptions; onClose: 
             {options.confirmText ?? '확인'}
           </button>
           {!options.hideCancel && (
-            <button onClick={onClose} className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <button onClick={onClose} className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">
               취소
             </button>
           )}
@@ -194,15 +194,15 @@ function TaskModal({ task, onClose, onUpdate }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={handleSave} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700">
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="text-base font-semibold flex-1 focus:outline-none bg-transparent border-b-2 border-transparent focus:border-gray-300 transition-colors pb-0.5"
+            className="text-base font-semibold flex-1 focus:outline-none bg-transparent dark:text-gray-100 border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-500 transition-colors pb-0.5"
             placeholder="태스크 이름"
           />
-          <button onClick={handleSave} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors ml-2">
+          <button onClick={handleSave} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors ml-2">
             <X size={16} />
           </button>
         </div>
@@ -213,14 +213,14 @@ function TaskModal({ task, onClose, onUpdate }: {
             <button
               onClick={() => setTaskType('task')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all
-                ${taskType === 'task' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+                ${taskType === 'task' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400'}`}
             >
               <CalendarDays size={12} /> 태스크
             </button>
             <button
               onClick={() => setTaskType('meeting')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all
-                ${taskType === 'meeting' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+                ${taskType === 'meeting' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400'}`}
             >
               <Users size={12} /> 일정
             </button>
@@ -229,7 +229,7 @@ function TaskModal({ task, onClose, onUpdate }: {
           {/* 우선순위 + 날짜 */}
           <div className="flex flex-wrap gap-4">
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-400">우선순위</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">우선순위</p>
               <div className="flex gap-1.5">
                 {(Object.keys(PRIORITY_META) as TaskPriority[]).map(p => (
                   <button key={p} onClick={() => setPriority(p)}
@@ -240,13 +240,13 @@ function TaskModal({ task, onClose, onUpdate }: {
               </div>
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-400">{taskType === 'meeting' ? '일정 날짜' : '마감일'}</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{taskType === 'meeting' ? '일정 날짜' : '마감일'}</p>
               <div className="flex items-center gap-1.5">
-                <CalendarDays size={14} className="text-gray-400" />
+                <CalendarDays size={14} className="text-gray-400 dark:text-gray-500" />
                 <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1" />
+                  className="text-sm text-gray-700 dark:text-gray-200 focus:outline-none border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700" />
                 {dueDate && (
-                  <button onClick={() => setDueDate('')} className="text-gray-300 hover:text-gray-500"><X size={13} /></button>
+                  <button onClick={() => setDueDate('')} className="text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"><X size={13} /></button>
                 )}
               </div>
             </div>
@@ -254,15 +254,15 @@ function TaskModal({ task, onClose, onUpdate }: {
 
           {/* 설명 */}
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-gray-400">설명</p>
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500">설명</p>
             <textarea value={description} onChange={e => setDesc(e.target.value)}
               placeholder="태스크에 대한 설명을 입력하세요..." rows={3}
-              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" />
+              className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none" />
           </div>
 
           {/* 태그 */}
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-gray-400">태그</p>
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500">태그</p>
             <div className="flex flex-wrap gap-1.5 min-h-[28px]">
               {tags.map(t => (
                 <span key={t} className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${tagColor(t)}`}>
@@ -276,26 +276,26 @@ function TaskModal({ task, onClose, onUpdate }: {
                 }}
                 onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
                 placeholder="태그 입력 후 Enter..."
-                className="text-xs focus:outline-none text-gray-600 placeholder:text-gray-300 min-w-[120px] flex-1" />
+                className="text-xs focus:outline-none text-gray-600 dark:text-gray-400 placeholder:text-gray-300 dark:placeholder:text-gray-600 min-w-[120px] flex-1" />
             </div>
           </div>
 
           {/* 메모 */}
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-gray-400">메모</p>
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500">메모</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="개인 메모..." rows={3}
-              className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none bg-gray-50" />
+              className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none bg-gray-50 dark:bg-gray-700" />
           </div>
 
           {/* 체크리스트 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-gray-400">체크리스트</p>
-              {checklistItems.length > 0 && <span className="text-xs text-gray-400">{completedCount}/{checklistItems.length}</span>}
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">체크리스트</p>
+              {checklistItems.length > 0 && <span className="text-xs text-gray-400 dark:text-gray-500">{completedCount}/{checklistItems.length}</span>}
             </div>
             {checklistItems.length > 0 && (
-              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className="h-full bg-green-400 rounded-full transition-all"
                   style={{ width: `${(completedCount / checklistItems.length) * 100}%` }} />
               </div>
@@ -317,12 +317,12 @@ function TaskModal({ task, onClose, onUpdate }: {
                         if (e.key === 'Enter') commitItemEdit(item.id)
                         if (e.key === 'Escape') setEditingItemId(null)
                       }}
-                      className="text-sm flex-1 focus:outline-none border-b border-gray-300 bg-transparent pb-0.5"
+                      className="text-sm flex-1 focus:outline-none border-b border-gray-300 dark:border-gray-600 bg-transparent dark:text-gray-200 pb-0.5"
                     />
                   ) : (
                     <span
                       onClick={() => { setEditingItemId(item.id); setEditingItemText(item.text) }}
-                      className={`text-sm flex-1 cursor-text ${item.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
+                      className={`text-sm flex-1 cursor-text ${item.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}
                     >
                       {item.text}
                     </span>
@@ -339,7 +339,7 @@ function TaskModal({ task, onClose, onUpdate }: {
               <input value={newItemText} onChange={e => setNewItemText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && newItemText.trim()) addItemMutation.mutate(newItemText.trim()) }}
                 placeholder="항목 추가... (Enter)"
-                className="text-sm flex-1 focus:outline-none text-gray-600 placeholder:text-gray-300" />
+                className="text-sm flex-1 focus:outline-none text-gray-600 dark:text-gray-400 placeholder:text-gray-300 dark:placeholder:text-gray-600 bg-transparent" />
               {newItemText.trim() && (
                 <button onClick={() => addItemMutation.mutate(newItemText.trim())}
                   className="text-xs px-2 py-0.5 bg-gray-900 text-white rounded hover:bg-gray-700 transition-colors">추가</button>
@@ -348,7 +348,7 @@ function TaskModal({ task, onClose, onUpdate }: {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
           <button onClick={handleSave}
             className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">저장</button>
         </div>
@@ -372,29 +372,29 @@ function ColumnSettingsModal({ column, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-900">컬럼 설정</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">컬럼 설정</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X size={16} /></button>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-gray-500">컬럼 이름</label>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">컬럼 이름</label>
           <input autoFocus value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose() }}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" />
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-gray-500">WIP 한도 <span className="text-gray-300 font-normal">(비우면 한도 없음)</span></label>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400">WIP 한도 <span className="text-gray-300 dark:text-gray-600 font-normal">(비우면 한도 없음)</span></label>
           <input type="number" min="1" value={wipValue} onChange={e => setWipValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose() }}
             placeholder="최대 태스크 수"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300" />
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
         </div>
         <div className="flex gap-2 pt-1">
           <button onClick={handleSave} disabled={!name.trim()}
             className="flex-1 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">저장</button>
           <button onClick={onClose}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">취소</button>
+            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">취소</button>
         </div>
       </div>
     </div>
@@ -413,20 +413,20 @@ function MoveToProjectModal({ task, projects, currentProjectId, onClose, onMove 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-80 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-80 p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold">다른 프로젝트로 이동</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+          <h2 className="text-sm font-bold dark:text-gray-100">다른 프로젝트로 이동</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X size={16} /></button>
         </div>
-        <p className="text-xs text-gray-400 truncate">"{task.title}"을(를) 이동할 프로젝트 선택</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">"{task.title}"을(를) 이동할 프로젝트 선택</p>
         <div className="space-y-1.5 max-h-60 overflow-auto">
           {others.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">다른 프로젝트가 없습니다</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">다른 프로젝트가 없습니다</p>
           ) : others.map(p => (
             <button key={p.id} onClick={() => { onMove(task, p.id); onClose() }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left">
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
               <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-              <span className="text-sm font-medium text-gray-800 truncate">{p.name}</span>
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{p.name}</span>
             </button>
           ))}
         </div>
@@ -450,9 +450,9 @@ function getDueStatus(dueDate: string | null): DueStatus {
 }
 
 const DUE_STATUS_META: Record<NonNullable<DueStatus>, { cardClass: string; badgeClass: string; label: string }> = {
-  overdue:  { cardClass: 'border-red-300 bg-red-50',       badgeClass: 'text-red-500',    label: '기한 초과' },
-  today:    { cardClass: 'border-orange-300 bg-orange-50', badgeClass: 'text-orange-500', label: '오늘 마감' },
-  tomorrow: { cardClass: 'border-yellow-300 bg-yellow-50', badgeClass: 'text-yellow-600', label: '내일 마감' },
+  overdue:  { cardClass: 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20',             badgeClass: 'text-red-500',    label: '기한 초과' },
+  today:    { cardClass: 'border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20', badgeClass: 'text-orange-500', label: '오늘 마감' },
+  tomorrow: { cardClass: 'border-yellow-300 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20', badgeClass: 'text-yellow-600', label: '내일 마감' },
 }
 
 // ───────── TaskActionModal ─────────
@@ -470,44 +470,44 @@ function TaskActionModal({ task, columns, onClose, onOpenModal, onMove, onCopy, 
   const otherCols = columns.filter(c => c.id !== task.status)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-72 overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold truncate">{task.title}</p>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0"><X size={15} /></button>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-72 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold truncate dark:text-gray-100">{task.title}</p>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 shrink-0"><X size={15} /></button>
         </div>
         <div className="py-1.5">
           <button onClick={() => { onOpenModal(); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 transition-colors">
             <Maximize2 size={15} className="text-blue-400 shrink-0" /> 열기
           </button>
           {otherCols.length > 0 && (
             <>
-              <div className="border-t border-gray-100 my-1" />
+              <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
               {otherCols.map(c => (
                 <button key={c.id} onClick={() => { onMove(c.id); onClose() }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 transition-colors">
                   <ChevronRight size={15} className="text-gray-400 shrink-0" />
                   <span className="truncate">{c.name}으로 이동</span>
                 </button>
               ))}
             </>
           )}
-          <div className="border-t border-gray-100 my-1" />
+          <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
           <button onClick={() => { onCopy(); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 transition-colors">
             <Copy size={15} className="text-green-500 shrink-0" /> 복사
           </button>
           <button onClick={() => { onShowMoveProject(); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 transition-colors">
             <FolderInput size={15} className="text-purple-500 shrink-0" /> 다른 프로젝트로 이동
           </button>
-          <div className="border-t border-gray-100 my-1" />
+          <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
           <button onClick={() => { onArchive(); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-amber-50 text-sm text-amber-600 transition-colors">
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-900/20 text-sm text-amber-600 transition-colors">
             <Archive size={15} className="shrink-0" /> 보관
           </button>
           <button onClick={() => { onSoftDelete(); onClose() }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-sm text-red-500 transition-colors">
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-500 transition-colors">
             <Trash2 size={15} className="shrink-0" /> 삭제
           </button>
         </div>
@@ -614,9 +614,9 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
         className={`relative rounded-lg p-3 shadow-sm border group transition-all ${
           selectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
         } ${
-          isSelected ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200' :
-          isDragOverlay ? 'bg-white shadow-lg rotate-1 border-gray-100' :
-          dueMeta ? `${dueMeta.cardClass}` : 'bg-white border-gray-100'
+          isSelected ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800' :
+          isDragOverlay ? 'bg-white dark:bg-gray-800 shadow-lg rotate-1 border-gray-100 dark:border-gray-700' :
+          dueMeta ? `${dueMeta.cardClass}` : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
         }`}
       >
         <div className="flex items-start justify-between gap-2">
@@ -630,12 +630,12 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
               {isSelected && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
             </button>
           )}
-          <p className="text-sm font-medium leading-snug flex-1">{task.title}</p>
+          <p className="text-sm font-medium leading-snug flex-1 dark:text-gray-200">{task.title}</p>
           {!isDragOverlay && !selectionMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); setShowActionModal(true) }}
-              className="p-0.5 text-gray-300 hover:text-gray-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+              className="p-0.5 text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
               title="더 보기"
             >
               <MoreHorizontal size={15} />
@@ -684,13 +684,13 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
 
         {/* 펼쳐진 내용 — 설명 + 체크리스트 */}
         {!isDragOverlay && expanded && (
-          <div className="mt-2 space-y-2 border-t border-gray-100 pt-2">
+          <div className="mt-2 space-y-2 border-t border-gray-100 dark:border-gray-700 pt-2">
             {hasDescription && (
-              <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed whitespace-pre-line">{task.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-line">{task.description}</p>
             )}
             {checklist.length > 0 && (
               <div className="space-y-1">
-                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div className="w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div className="h-full bg-green-400 rounded-full"
                     style={{ width: `${(completedCount / checklist.length) * 100}%` }} />
                 </div>
@@ -705,7 +705,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
                         ? <CheckSquare size={12} className="text-green-500" />
                         : <Square size={12} className="text-gray-300" />}
                     </button>
-                    <span className={item.completed ? 'line-through text-gray-400' : 'text-gray-600'}>{item.text}</span>
+                    <span className={item.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-400'}>{item.text}</span>
                   </div>
                 ))}
                 {checklist.length > 4 && (
@@ -771,19 +771,19 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
 
   return (
     <div ref={setOuterRef} style={style} className="w-72 shrink-0 flex flex-col">
-      <div className={`flex items-center justify-between mb-3 group/header rounded-xl px-1 transition-colors ${isOver && collapsed ? 'bg-gray-200/60' : ''}`}>
+      <div className={`flex items-center justify-between mb-3 group/header rounded-xl px-1 transition-colors ${isOver && collapsed ? 'bg-gray-200/60 dark:bg-gray-600/40' : ''}`}>
         <div className="flex items-center gap-1.5">
           <button {...listeners} {...attributes}
-            className="cursor-grab active:cursor-grabbing p-0.5 text-gray-300 hover:text-gray-500 transition-colors touch-none">
+            className="cursor-grab active:cursor-grabbing p-0.5 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 transition-colors touch-none">
             <GripVertical size={14} />
           </button>
-          <span className="text-sm font-semibold cursor-pointer hover:text-gray-600 transition-colors"
+          <span className="text-sm font-semibold cursor-pointer hover:text-gray-600 dark:text-gray-200 dark:hover:text-gray-400 transition-colors"
             onDoubleClick={() => setShowSettingsModal(true)} title="더블클릭하여 설정">
             {column.name}
           </span>
           <button onClick={() => setShowSettingsModal(true)} title="컬럼 설정"
             className={`text-xs px-1.5 py-0.5 rounded-full transition-colors ${
-              wipExceeded ? 'bg-red-100 text-red-600 font-semibold' : 'bg-white/60 text-gray-400 hover:bg-white hover:text-gray-600'
+              wipExceeded ? 'bg-red-100 text-red-600 font-semibold' : 'bg-white/60 dark:bg-gray-700/60 text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300'
             }`}>
             {column.wip_limit != null ? `${tasks.length}/${column.wip_limit}` : tasks.length}
           </button>
@@ -794,13 +794,13 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
         </div>
         <div className="flex items-center gap-0.5">
           <button onClick={() => { setAddingTo(column.id); setNewTitle('') }}
-            className="p-1 text-gray-400 hover:text-gray-700 transition-colors"><Plus size={16} /></button>
+            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"><Plus size={16} /></button>
           <button onClick={onToggleCollapse}
-            className="p-1 text-gray-400 hover:text-gray-700 transition-all" title={collapsed ? '펼치기' : '접기'}>
+            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all" title={collapsed ? '펼치기' : '접기'}>
             {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
           </button>
           <button onClick={() => onDeleteColumn(column)}
-            className="p-1 text-gray-300 hover:text-red-400 opacity-0 group-hover/header:opacity-100 transition-all">
+            className="p-1 text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 opacity-0 group-hover/header:opacity-100 transition-all">
             <X size={14} />
           </button>
         </div>
@@ -822,19 +822,19 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
           </SortableContext>
 
           {addingTo === column.id && (
-            <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600 space-y-2">
               <textarea autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddTask(column.id) }
                   if (e.key === 'Escape') setAddingTo(null)
                 }}
                 placeholder="태스크 이름..." rows={2}
-                className="w-full text-sm resize-none focus:outline-none" />
+                className="w-full text-sm resize-none focus:outline-none bg-transparent dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
               <div className="flex gap-1.5">
                 <button onClick={() => onAddTask(column.id)} disabled={!newTitle.trim()}
                   className="px-3 py-1 bg-gray-900 text-white rounded text-xs font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors">추가</button>
                 <button onClick={() => setAddingTo(null)}
-                  className="px-3 py-1 border border-gray-200 rounded text-xs hover:bg-gray-50 transition-colors">취소</button>
+                  className="px-3 py-1 border border-gray-200 dark:border-gray-600 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">취소</button>
               </div>
             </div>
           )}
@@ -1262,12 +1262,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
         <div className="flex flex-col h-full">
           {/* 헤더 */}
-          <div className="px-8 py-5 border-b border-gray-200 bg-white flex items-center gap-3 flex-wrap">
+          <div className="px-8 py-5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center gap-3 flex-wrap">
             {project && <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
-            <h1 className="text-lg font-bold truncate">{project?.name ?? '...'}</h1>
+            <h1 className="text-lg font-bold truncate dark:text-gray-100">{project?.name ?? '...'}</h1>
             <Link
               href={`/projects/${id}/issues`}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400 transition-colors"
             >
               <BookOpen size={13} /> 이슈 & 기록
             </Link>
@@ -1275,10 +1275,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="relative">
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   placeholder="태스크 검색..."
-                  className="w-44 pl-3 pr-7 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 bg-gray-50" />
+                  className="w-44 pl-3 pr-7 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <X size={13} />
                   </button>
                 )}
@@ -1289,21 +1289,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
                       filterPriority === p
                         ? PRIORITY_META[p].className + ' border-transparent ring-2 ring-offset-1 ring-gray-400'
-                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400'
                     }`}>
                     {PRIORITY_META[p].label}
                   </button>
                 ))}
                 {filterPriority && (
                   <button onClick={() => setFilterPriority(null)}
-                    className="text-xs px-2 py-1 rounded-full text-gray-400 hover:text-gray-700 transition-colors">초기화</button>
+                    className="text-xs px-2 py-1 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">초기화</button>
                 )}
                 <button
                   onClick={() => setSortByPriority(prev => !prev)}
                   className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
                     sortByPriority
                       ? 'bg-gray-900 text-white border-transparent'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400'
                   }`}
                   title="우선순위 높은 순으로 정렬"
                 >
@@ -1314,7 +1314,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all ${
                     selectionMode
                       ? 'bg-blue-600 text-white border-transparent'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400'
                   }`}
                 >
                   {selectionMode ? '선택 취소' : '선택'}
@@ -1325,8 +1325,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* 태그 필터 바 */}
           {allTags.length > 0 && (
-            <div className="px-8 py-2 border-b border-gray-100 bg-white flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-gray-400 shrink-0">태그</span>
+            <div className="px-8 py-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">태그</span>
               {allTags.map(tag => (
                 <button
                   key={tag}
@@ -1341,7 +1341,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               {filterTag && (
                 <button
                   onClick={() => setFilterTag(null)}
-                  className="text-xs px-2 py-0.5 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
+                  className="text-xs px-2 py-0.5 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                 >
                   초기화
                 </button>
@@ -1351,9 +1351,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* 요약 통계 바 */}
           {summary.total > 0 && (
-            <div className="px-8 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 text-xs">
-              <span className="flex items-center gap-1.5 text-gray-500">
-                <Layers size={13} /> 전체 <strong className="text-gray-800">{summary.total}</strong>
+            <div className="px-8 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center gap-6 text-xs">
+              <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                <Layers size={13} /> 전체 <strong className="text-gray-800 dark:text-gray-100">{summary.total}</strong>
               </span>
               <span className="flex items-center gap-1.5 text-green-600">
                 <CheckSquare size={13} /> 완료 <strong>{summary.done}</strong>
@@ -1379,8 +1379,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 </span>
               )}
               {summary.total > 0 && (
-                <span className="ml-auto text-gray-400">
-                  진행률 <strong className="text-gray-700">{Math.round((summary.done / summary.total) * 100)}%</strong>
+                <span className="ml-auto text-gray-400 dark:text-gray-500">
+                  진행률 <strong className="text-gray-700 dark:text-gray-300">{Math.round((summary.done / summary.total) * 100)}%</strong>
                 </span>
               )}
             </div>
@@ -1417,15 +1417,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               </SortableContext>
 
               {addingColumn ? (
-                <div className="w-72 shrink-0 p-4 border-2 border-dashed border-gray-200 rounded-xl space-y-3 bg-white">
-                  <p className="text-sm font-semibold text-gray-700">새 컬럼</p>
+                <div className="w-72 shrink-0 p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl space-y-3 bg-white dark:bg-gray-800">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">새 컬럼</p>
                   <input autoFocus value={newColName} onChange={e => setNewColName(e.target.value)}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && newColName.trim()) createColumnMutation.mutate({ name: newColName, color: newColColor })
                       if (e.key === 'Escape') setAddingColumn(false)
                     }}
                     placeholder="컬럼 이름"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400" />
                   <div className="flex flex-wrap gap-2">
                     {COLUMN_COLORS.map(c => (
                       <button key={c} onClick={() => setNewColColor(c)}
@@ -1438,12 +1438,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                       disabled={!newColName.trim()}
                       className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium disabled:opacity-50 hover:bg-gray-700 transition-colors">추가</button>
                     <button onClick={() => setAddingColumn(false)}
-                      className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs hover:bg-gray-50 transition-colors">취소</button>
+                      className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors">취소</button>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setAddingColumn(true)}
-                  className="w-72 shrink-0 h-12 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors">
+                  className="w-72 shrink-0 h-12 flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-400 dark:text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
                   <Plus size={16} /> 컬럼 추가
                 </button>
               )}
@@ -1453,15 +1453,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {archivedTasks.length > 0 && (
               <div>
                 <button onClick={() => setShowArchived(v => !v)}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-3">
+                  className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-3">
                   {showArchived ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                   <Archive size={14} /> 보관된 태스크 ({archivedTasks.length})
                 </button>
                 {showArchived && (
                   <div className="space-y-2 max-w-72">
                     {archivedTasks.map(task => (
-                      <div key={task.id} className="bg-white rounded-lg p-3 border border-gray-200 group flex items-center justify-between gap-2 opacity-60">
-                        <p className="text-sm text-gray-500 line-through truncate">{task.title}</p>
+                      <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-60">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 line-through truncate">{task.title}</p>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                           <button onClick={() => updateTaskMutation.mutate({ taskId: task.id, body: { archived: false } })}
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">
@@ -1483,15 +1483,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {trashedTasks.length > 0 && (
               <div>
                 <button onClick={() => setShowTrash(v => !v)}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-3">
+                  className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-3">
                   {showTrash ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                   <Trash2 size={14} /> 휴지통 ({trashedTasks.length})
                 </button>
                 {showTrash && (
                   <div className="space-y-2 max-w-72">
                     {trashedTasks.map(task => (
-                      <div key={task.id} className="bg-white rounded-lg p-3 border border-gray-200 group flex items-center justify-between gap-2 opacity-50">
-                        <p className="text-sm text-gray-400 line-through truncate">{task.title}</p>
+                      <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-50">
+                        <p className="text-sm text-gray-400 dark:text-gray-500 line-through truncate">{task.title}</p>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                           <button onClick={() => updateTaskMutation.mutate({ taskId: task.id, body: { deleted_at: null } })}
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">

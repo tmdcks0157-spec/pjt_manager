@@ -158,13 +158,13 @@ export default function WeeklyReportPage() {
     return (
       <button
         onClick={() => router.push(`/projects/${task.project_id}`)}
-        className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
+        className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
       >
         {isDone
           ? <CheckCircle2 size={14} className="text-green-500 shrink-0" />
           : <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
         }
-        <span className={`flex-1 text-sm ${isDone ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+        <span className={`flex-1 text-sm ${isDone ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>
           {task.title}
         </span>
         {task.priority !== 'normal' && (
@@ -187,26 +187,26 @@ export default function WeeklyReportPage() {
       {/* 헤더 */}
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 mb-1">
             <Calendar size={13} />
             {fmt(start)} – {fmt(end)}
             {weekOffset === 0 && (
-              <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">이번 주</span>
+              <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-medium">이번 주</span>
             )}
           </div>
-          <h1 className="text-2xl font-bold">주간 리포트</h1>
+          <h1 className="text-2xl font-bold dark:text-gray-100">주간 리포트</h1>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setWeekOffset(v => v - 1)}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
           >
             <ChevronLeft size={14} /> 이전 주
           </button>
           {weekOffset !== 0 && (
             <button
               onClick={() => setWeekOffset(0)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-500"
+              className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
             >
               이번 주
             </button>
@@ -214,7 +214,7 @@ export default function WeeklyReportPage() {
           <button
             onClick={() => setWeekOffset(v => v + 1)}
             disabled={weekOffset >= 0}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             다음 주 <ChevronRight size={14} />
           </button>
@@ -232,26 +232,26 @@ export default function WeeklyReportPage() {
         <>
           {/* 요약 카드 */}
           <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
               <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mx-auto mb-2">
                 <Plus size={15} className="text-blue-500" />
               </div>
               <p className="text-2xl font-bold">{weekTasks.length}</p>
-              <p className="text-xs text-gray-400 mt-0.5">이번 주 생성</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 생성</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
               <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center mx-auto mb-2">
                 <CheckCircle2 size={15} className="text-green-500" />
               </div>
               <p className="text-2xl font-bold text-green-600">{completedTasks.length}</p>
-              <p className="text-xs text-gray-400 mt-0.5">이번 주 완료</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 완료</p>
             </div>
-            <div className={`border rounded-xl p-4 text-center ${overdueTasks.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2 ${overdueTasks.length > 0 ? 'bg-red-100' : 'bg-gray-50'}`}>
-                <AlertCircle size={15} className={overdueTasks.length > 0 ? 'text-red-500' : 'text-gray-400'} />
+            <div className={`border rounded-xl p-4 text-center ${overdueTasks.length > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2 ${overdueTasks.length > 0 ? 'bg-red-100 dark:bg-red-900/40' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                <AlertCircle size={15} className={overdueTasks.length > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'} />
               </div>
-              <p className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-600' : ''}`}>{overdueTasks.length}</p>
-              <p className="text-xs text-gray-400 mt-0.5">기한 초과</p>
+              <p className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'dark:text-gray-100'}`}>{overdueTasks.length}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기한 초과</p>
             </div>
           </div>
 
@@ -264,7 +264,7 @@ export default function WeeklyReportPage() {
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-red-600 mb-3">
                     <AlertCircle size={14} /> 기한 초과 ({overdueTasks.length})
                   </h2>
-                  <div className="bg-white border border-red-100 rounded-xl overflow-hidden divide-y divide-gray-50">
+                  <div className="bg-white dark:bg-gray-800 border border-red-100 dark:border-red-900/50 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
                     {overdueTasks.map(t => <TaskRow key={t.id} task={t} />)}
                   </div>
                 </section>
@@ -275,7 +275,7 @@ export default function WeeklyReportPage() {
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-green-600 mb-3">
                     <CheckCircle2 size={14} /> 이번 주 완료 ({completedTasks.length})
                   </h2>
-                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-50">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
                     {completedTasks.map(t => <TaskRow key={t.id} task={t} />)}
                   </div>
                 </section>
@@ -286,7 +286,7 @@ export default function WeeklyReportPage() {
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-blue-600 mb-3">
                     <Plus size={14} /> 이번 주 생성 ({weekTasks.length})
                   </h2>
-                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-50">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
                     {weekTasks.map(t => <TaskRow key={t.id} task={t} />)}
                   </div>
                 </section>
@@ -297,7 +297,7 @@ export default function WeeklyReportPage() {
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-purple-600 mb-3">
                     <MessageSquare size={14} /> 이번 주 이슈/기록 ({weeklyPosts.length})
                   </h2>
-                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-50">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
                     {weeklyPosts.map(post => {
                       const proj = projMap[post.project_id]
                       const isNote = post.type === 'note'
@@ -307,13 +307,13 @@ export default function WeeklyReportPage() {
                         <Link
                           key={post.id}
                           href={`/projects/${post.project_id}/issues`}
-                          className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                          className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                           {isNote
                             ? <FileText size={14} className="text-purple-400 shrink-0" />
                             : <MessageSquare size={14} className={isOpen ? 'text-blue-500 shrink-0' : 'text-gray-400 shrink-0'} />
                           }
-                          <span className="flex-1 text-sm text-gray-700 truncate">{post.title}</span>
+                          <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{post.title}</span>
                           {isNote ? (
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium shrink-0">기록</span>
                           ) : (
@@ -341,7 +341,7 @@ export default function WeeklyReportPage() {
             {/* 오른쪽: 프로젝트별 현황 */}
             {activeProjects.length > 0 && (
               <div className="lg:col-span-1">
-                <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                   <FolderKanban size={14} /> 프로젝트별 현황
                 </h2>
                 <div className="space-y-2 lg:sticky lg:top-8">
@@ -351,13 +351,13 @@ export default function WeeklyReportPage() {
                       <button
                         key={p.id}
                         onClick={() => router.push(`/projects/${p.id}`)}
-                        className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-all"
+                        className="w-full text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-sm transition-all"
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                          <span className="text-sm font-semibold truncate">{p.name}</span>
+                          <span className="text-sm font-semibold truncate dark:text-gray-100">{p.name}</span>
                         </div>
-                        <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                        <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
                           {ps.created.length > 0 && (
                             <span className="flex items-center gap-1 text-blue-600">
                               <Plus size={11} /> {ps.created.length}개 생성

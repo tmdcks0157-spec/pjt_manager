@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import {
   LayoutDashboard, Calendar, LogOut, Search, X, BarChart2, LayoutGrid,
-  ChevronDown, ChevronRight, GripVertical, Settings2, Sun,
+  ChevronDown, ChevronRight, GripVertical, Settings2, Sun, Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Project } from '@/types'
@@ -239,10 +239,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="h-screen flex overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-6 px-3 shrink-0">
+      <aside className="w-56 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col py-6 px-3 shrink-0">
         <div className="px-3 mb-4">
-          <h1 className="font-bold text-base tracking-tight">My PM</h1>
-          {user && <p className="text-xs text-gray-400 mt-0.5 truncate">{user.email}</p>}
+          <h1 className="font-bold text-base tracking-tight text-gray-900 dark:text-gray-100">My PM</h1>
+          {user && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{user.email}</p>}
         </div>
 
         {/* 전역 검색 */}
@@ -256,7 +256,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               onFocus={() => { if (results.length > 0) setOpen(true) }}
               onKeyDown={handleKeyDown}
               placeholder="검색 (⌘K)"
-              className="w-full pl-7 pr-6 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all"
+              className="w-full pl-7 pr-6 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 focus:bg-white dark:focus:bg-gray-700 transition-all"
             />
             {query && (
               <button onClick={() => { setQuery(''); setOpen(false) }}
@@ -266,17 +266,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             )}
           </div>
           {open && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
-              {loading && <p className="text-xs text-gray-400 px-3 py-2.5">검색 중...</p>}
-              {!loading && results.length === 0 && <p className="text-xs text-gray-400 px-3 py-2.5">결과 없음</p>}
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden">
+              {loading && <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2.5">검색 중...</p>}
+              {!loading && results.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2.5">결과 없음</p>}
               {!loading && results.map((r, i) => (
                 <button key={r.id} onClick={() => navigate(r)} onMouseEnter={() => setSelected(i)}
                   className={cn('w-full text-left px-3 py-2 flex items-center gap-2 transition-colors',
-                    selected === i ? 'bg-gray-100' : 'hover:bg-gray-50')}>
+                    selected === i ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700')}>
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: r.project_color }} />
                   <span className="flex-1 min-w-0">
-                    <span className="block text-xs font-medium text-gray-800 truncate">{r.title}</span>
-                    <span className="block text-[10px] text-gray-400 truncate">{r.project_name}</span>
+                    <span className="block text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{r.title}</span>
+                    <span className="block text-[10px] text-gray-400 dark:text-gray-500 truncate">{r.project_name}</span>
                   </span>
                 </button>
               ))}
@@ -287,7 +287,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         {/* ── 내비게이션 (순서 편집 가능) ── */}
         <div className="mb-1">
           <div className="flex items-center justify-between px-3 mb-1">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">메뉴</span>
+            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">메뉴</span>
             <button
               onClick={() => setEditingNav(v => !v)}
               className={cn('p-0.5 rounded transition-colors', editingNav ? 'text-blue-500' : 'text-gray-300 hover:text-gray-500')}
@@ -306,7 +306,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 return (
                   <div key={href} className="flex items-center gap-1 rounded-md">
                     <GripVertical size={12} className="text-gray-300 ml-1 shrink-0" />
-                    <span className="flex-1 text-sm font-medium text-gray-700 px-1 py-2 truncate">{label}</span>
+                    <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300 px-1 py-2 truncate">{label}</span>
                     <div className="flex flex-col shrink-0 mr-1">
                       <button onClick={() => moveNav(i, -1)} disabled={i === 0}
                         className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors">
@@ -326,9 +326,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   <div key={href}>
                     {/* 프로젝트 메뉴 행: 왼쪽=링크, 오른쪽=펼침 토글 */}
                     <div className={cn('flex items-center rounded-md transition-colors',
-                      isActive ? 'bg-gray-100' : 'hover:bg-gray-50')}>
+                      isActive ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800')}>
                       <Link href={href}
-                        className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium flex-1 truncate text-gray-900">
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium flex-1 truncate text-gray-900 dark:text-gray-100">
                         <Icon size={16} className="shrink-0" />
                         {label}
                       </Link>
@@ -359,9 +359,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                           <>
                             {/* 편집 모드: 표시 중인 항목 */}
                             {sortedProjects.filter(p => !hiddenProjects.has(p.id)).map((p, i, arr) => (
-                              <div key={p.id} className="flex items-center gap-1 pl-6 pr-1 py-1 rounded-md hover:bg-gray-50">
+                              <div key={p.id} className="flex items-center gap-1 pl-6 pr-1 py-1 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
                                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                <span className="flex-1 text-xs text-gray-700 truncate px-1">{p.name}</span>
+                                <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate px-1">{p.name}</span>
                                 <div className="flex items-center shrink-0 gap-0.5">
                                   <div className="flex flex-col">
                                     <button onClick={() => moveProject(i, -1)} disabled={i === 0}
@@ -383,11 +383,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                             {/* 숨긴 항목 복원 섹션 */}
                             {hiddenProjects.size > 0 && (
                               <>
-                                <p className="text-[10px] text-gray-400 pl-6 pt-2 pb-0.5">숨긴 항목</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 pl-6 pt-2 pb-0.5">숨긴 항목</p>
                                 {sortedProjects.filter(p => hiddenProjects.has(p.id)).map(p => (
-                                  <div key={p.id} className="flex items-center gap-1 pl-6 pr-1 py-1 rounded-md opacity-50 hover:opacity-100 hover:bg-gray-50">
+                                  <div key={p.id} className="flex items-center gap-1 pl-6 pr-1 py-1 rounded-md opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-gray-800">
                                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                    <span className="flex-1 text-xs text-gray-500 truncate px-1 line-through">{p.name}</span>
+                                    <span className="flex-1 text-xs text-gray-500 dark:text-gray-400 truncate px-1 line-through">{p.name}</span>
                                     <button onClick={() => showProject(p.id)}
                                       className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors" title="다시 표시">
                                       <ChevronDown size={11} className="-rotate-90" />
@@ -396,11 +396,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                                 ))}
                               </>
                             )}
-                            <p className="text-[10px] text-gray-400 pl-6 py-1">X 버튼으로 숨기기</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 pl-6 py-1">X 버튼으로 숨기기</p>
                           </>
                         ) : (
                           sortedProjects.filter(p => !hiddenProjects.has(p.id)).length === 0 ? (
-                            <p className="text-[11px] text-gray-400 pl-8 py-1">프로젝트가 없습니다</p>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 pl-8 py-1">프로젝트가 없습니다</p>
                           ) : (
                             sortedProjects.filter(p => !hiddenProjects.has(p.id)).map(p => (
                               <Link
@@ -409,8 +409,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                                 className={cn(
                                   'flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-md text-xs font-medium transition-colors',
                                   pathname === `/projects/${p.id}`
-                                    ? 'bg-gray-100 text-gray-900'
-                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
                                 )}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
@@ -428,7 +428,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               return (
                 <Link key={href} href={href}
                   className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')}>
+                    isActive ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100')}>
                   <Icon size={16} />
                   {label}
                 </Link>
@@ -437,15 +437,28 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </nav>
 
           {editingNav && (
-            <p className="text-[10px] text-gray-400 px-3 mt-2">↑↓ 버튼으로 순서 변경</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 px-3 mt-2">↑↓ 버튼으로 순서 변경</p>
           )}
         </div>
 
         <div className="flex-1" />
 
+        <Link
+          href="/settings"
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors shrink-0',
+            pathname === '/settings'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
+          )}
+        >
+          <Settings size={16} />
+          설정
+        </Link>
+
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors mt-2 shrink-0"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors mt-1 shrink-0"
         >
           <LogOut size={16} />
           로그아웃
@@ -453,7 +466,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto bg-gray-50">{children}</main>
+      <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">{children}</main>
     </div>
   )
 }

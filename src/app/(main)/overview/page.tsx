@@ -211,23 +211,23 @@ export default function OverviewPage() {
     <div className="p-8 max-w-5xl mx-auto">
       {/* 헤더 */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">전체 현황</h1>
-        <p className="text-sm text-gray-400">모든 프로젝트의 진행 상태</p>
+        <h1 className="text-2xl font-bold mb-1 dark:text-gray-100">전체 현황</h1>
+        <p className="text-sm text-gray-400 dark:text-gray-500">모든 프로젝트의 진행 상태</p>
       </div>
 
       {/* 뷰 탭 */}
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
         <button
           onClick={() => setView('tasks')}
           className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all',
-            view === 'tasks' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+            view === 'tasks' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')}
         >
           <CheckSquare size={14} /> 태스크 현황
         </button>
         <button
           onClick={() => setView('issues')}
           className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all',
-            view === 'issues' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+            view === 'issues' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')}
         >
           <MessageSquare size={14} /> 이슈 & 기록
           {issueStats.open > 0 && (
@@ -249,8 +249,8 @@ export default function OverviewPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                   filter === f.key
-                    ? 'bg-gray-900 text-white border-transparent'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-transparent'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
                 )}
               >
                 {f.label}
@@ -289,15 +289,15 @@ export default function OverviewPage() {
                 const urgentCount = tasks.filter(t => t.priority === 'urgent').length
 
                 return (
-                  <div key={p.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                  <div key={p.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
                     <div
                       onClick={() => toggleCollapse(p.id)}
-                      className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                     >
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                      <span className="text-sm font-semibold flex-1">{p.name}</span>
+                      <span className="text-sm font-semibold flex-1 dark:text-gray-100">{p.name}</span>
                       <div className="flex items-center gap-2 mr-2">
-                        <span className="text-xs text-gray-400">{tasks.length}개</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{tasks.length}개</span>
                         {urgentCount > 0 && (
                           <span className="flex items-center gap-0.5 text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full font-medium">
                             <Siren size={10} /> {urgentCount}
@@ -319,7 +319,7 @@ export default function OverviewPage() {
                     </div>
 
                     {!isCollapsed && (
-                      <div className="divide-y divide-gray-50 border-t border-gray-100">
+                      <div className="divide-y divide-gray-50 dark:divide-gray-700 border-t border-gray-100 dark:border-gray-700">
                         {tasks.map(task => {
                           const col = colMap[task.status]
                           const pm = PRIORITY_META[task.priority]
@@ -338,11 +338,11 @@ export default function OverviewPage() {
                             <button
                               key={task.id}
                               onClick={() => router.push(`/projects/${p.id}`)}
-                              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors text-left group"
+                              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left group"
                             >
-                              <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300 group-hover:bg-gray-500 transition-colors" />
-                              <span className="flex-1 text-sm text-gray-700 truncate">{task.title}</span>
-                              {col && <span className="text-[10px] text-gray-400 shrink-0 hidden sm:block">{col.name}</span>}
+                              <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300 dark:bg-gray-600 group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors" />
+                              <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{task.title}</span>
+                              {col && <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 hidden sm:block">{col.name}</span>}
                               {checklist.length > 0 && (
                                 <span className="text-[10px] text-gray-400 shrink-0 flex items-center gap-0.5">
                                   <CheckSquare size={10} /> {completedChecklist}/{checklist.length}
@@ -387,8 +387,8 @@ export default function OverviewPage() {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                   issueFilter === f.key
-                    ? 'bg-gray-900 text-white border-transparent'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-transparent'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
                 )}
               >
                 {f.label}
