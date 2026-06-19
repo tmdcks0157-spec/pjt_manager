@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem, Project } from '@/types'
+import type { Task, TaskPriority, TaskType, ProjectColumn, ChecklistItem, Project, Contact } from '@/types'
+import { useContacts } from '@/hooks/useCRM'
 import { PRIORITY_META } from '@/lib/constants'
 import {
   Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw,
@@ -99,10 +100,26 @@ function TaskModal({ task, onClose, onUpdate }: {
   const [dueDate, setDueDate]   = useState(task.due_date ? task.due_date.slice(0, 10) : '')
   const [tags, setTags]             = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput]     = useState('')
+  const [contactId, setContactId]   = useState<string>(task.contact_id ?? '')
   const [newItemText, setNewItemText] = useState('')
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemText, setEditingItemText] = useState('')
   const queryClient = useQueryClient()
+  const { data: contacts = [] } = useContacts()
+
+  const descRef  = useRef<HTMLTextAreaElement>(null)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+
+  const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [])
+
+  useEffect(() => {
+    autoResize(descRef.current)
+    autoResize(notesRef.current)
+  }, [])
 
   function addTag(raw: string) {
     const t = raw.trim().toLowerCase()
@@ -183,6 +200,7 @@ function TaskModal({ task, onClose, onUpdate }: {
       description, notes, priority, task_type: taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,
       tags,
+      contact_id:  contactId || null,
     })
     onClose()
   }
@@ -190,7 +208,7 @@ function TaskModal({ task, onClose, onUpdate }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={handleSave} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700">
           <input
             value={title}
@@ -251,9 +269,10 @@ function TaskModal({ task, onClose, onUpdate }: {
           {/* 설명 */}
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500">설명</p>
-            <textarea value={description} onChange={e => setDesc(e.target.value)}
+            <textarea ref={descRef} value={description}
+              onChange={e => { setDesc(e.target.value); autoResize(e.target) }}
               placeholder="태스크에 대한 설명을 입력하세요..." rows={3}
-              className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none" />
+              className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none overflow-hidden" />
           </div>
 
           {/* 태그 */}
@@ -276,12 +295,32 @@ function TaskModal({ task, onClose, onUpdate }: {
             </div>
           </div>
 
+          {/* 연락처 연결 */}
+          {contacts.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">연락처</p>
+              <select
+                value={contactId}
+                onChange={e => setContactId(e.target.value)}
+                className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600"
+              >
+                <option value="">연결 안 함</option>
+                {contacts.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.company ? ` · ${c.company.name}` : ''}{c.role ? ` (${c.role})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* 메모 */}
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500">메모</p>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+            <textarea ref={notesRef} value={notes}
+              onChange={e => { setNotes(e.target.value); autoResize(e.target) }}
               placeholder="개인 메모..." rows={3}
-              className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none bg-gray-50 dark:bg-gray-700" />
+              className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none overflow-hidden bg-gray-50 dark:bg-gray-700" />
           </div>
 
           {/* 체크리스트 */}
@@ -515,7 +554,7 @@ function TaskActionModal({ task, columns, onClose, onOpenModal, onMove, onCopy, 
 // ───────── TaskCard ─────────
 function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
   onOpenModal, onCopy, onMoveToProject, isDragOverlay = false,
-  selectionMode = false, isSelected = false, onToggleSelect }: {
+  selectionMode = false, isSelected = false, onToggleSelect, contactsMap = {} }: {
   task: Task
   columns: ProjectColumn[]
   projects?: Project[]
@@ -530,6 +569,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
   selectionMode?: boolean
   isSelected?: boolean
   onToggleSelect?: (id: string) => void
+  contactsMap?: Record<string, Contact>
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id, disabled: isDragOverlay,
@@ -664,6 +704,12 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
                 {completedCount}/{checklist.length}
               </span>
             )}
+            {task.contact_id && contactsMap[task.contact_id] && (
+              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 font-medium">
+                <Users size={9} />
+                {contactsMap[task.contact_id].name}
+              </span>
+            )}
             {/* 펼치기 버튼 */}
             {hasExpandable && (
               <button
@@ -731,7 +777,7 @@ function TaskCard({ task, columns, projects, currentProjectId, onSoftDelete, onM
 function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSoftDelete, onMove, onArchive,
   onDeleteColumn, onOpenModal, onCopy, onMoveToProject, updateColumnMutation,
   collapsed, onToggleCollapse, addingTo, setAddingTo, newTitle, setNewTitle, onAddTask,
-  selectionMode, selectedIds, onToggleSelect }: {
+  selectionMode, selectedIds, onToggleSelect, contactsMap }: {
   column: ProjectColumn
   tasks: Task[]
   columns: ProjectColumn[]
@@ -747,6 +793,7 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
   updateColumnMutation: { mutate: (args: { colId: string; body: Partial<ProjectColumn> }) => void }
   collapsed: boolean
   onToggleCollapse: () => void
+  contactsMap: Record<string, Contact>
   addingTo: string | null
   setAddingTo: (s: string | null) => void
   newTitle: string
@@ -815,7 +862,8 @@ function KanbanColumn({ column, tasks, columns, projects, currentProjectId, onSo
                 onOpenModal={onOpenModal} onCopy={onCopy} onMoveToProject={onMoveToProject}
                 selectionMode={selectionMode}
                 isSelected={selectedIds.has(task.id)}
-                onToggleSelect={onToggleSelect} />
+                onToggleSelect={onToggleSelect}
+                contactsMap={contactsMap} />
             ))}
           </SortableContext>
 
@@ -869,6 +917,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   })
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  const { data: contacts = [] } = useContacts()
+  const contactsMap = useMemo<Record<string, Contact>>(
+    () => Object.fromEntries(contacts.map(c => [c.id, c])),
+    [contacts]
+  )
 
   const { data: project } = useQuery({
     queryKey: ['project', id],
@@ -1410,6 +1464,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     selectionMode={selectionMode}
                     selectedIds={selectedIds}
                     onToggleSelect={toggleSelect}
+                    contactsMap={contactsMap}
                   />
                 ))}
               </SortableContext>

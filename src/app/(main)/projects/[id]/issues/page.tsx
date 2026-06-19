@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { use } from 'react'
 import {
   Plus, X, ChevronLeft, AlertCircle, BookOpen,
-  CheckCircle2, Circle, Trash2, Pencil,
+  CheckCircle2, Circle, Trash2, Pencil, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PRIORITY_META } from '@/lib/constants'
+import { useContacts } from '@/hooks/useCRM'
 
 type PostType = 'issue' | 'note'
 type IssueStatus = 'open' | 'closed'
@@ -21,11 +22,13 @@ interface Post {
   id: string
   user_id: string
   project_id: string
+  contact_id: string | null
   type: PostType
   title: string
   body: string | null
   status: IssueStatus
   priority: PostPriority
+  recorded_at: string | null
   created_at: string
   updated_at: string
 }
@@ -47,9 +50,15 @@ ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can CRUD their own posts"
   ON posts FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);`
 
+function nowLocalISO() {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function fmtTimestamp(d: string) {
   const date = new Date(d)
-  const yy  = String(date.getFullYear()).slice(2)
+  const yy  = date.getFullYear()
   const mm  = String(date.getMonth() + 1).padStart(2, '0')
   const dd  = String(date.getDate()).padStart(2, '0')
   const hh  = String(date.getHours()).padStart(2, '0')
@@ -62,23 +71,29 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  // ── 필터 ──
   const [filter, setFilter] = useState<FilterType>('all')
-
-  // ── 모달 ──
   const [showModal, setShowModal] = useState(false)
   const [editPost, setEditPost] = useState<Post | null>(null)
 
-  // ── 폼 필드 ──
-  const [formType, setFormType]         = useState<PostType>('issue')
-  const [formTitle, setFormTitle]       = useState('')
-  const [formBody, setFormBody]         = useState('')
-  const [formPriority, setFormPriority] = useState<PostPriority>('normal')
-  const [formError, setFormError]       = useState('')
-  const titleRef = useRef<HTMLInputElement>(null)
+  const [formType, setFormType]           = useState<PostType>('issue')
+  const [formTitle, setFormTitle]         = useState('')
+  const [formBody, setFormBody]           = useState('')
+  const [formPriority, setFormPriority]   = useState<PostPriority>('normal')
+  const [formContactId, setFormContactId] = useState('')
+  const [formRecordedAt, setFormRecordedAt] = useState(nowLocalISO())
+  const [formError, setFormError]         = useState('')
+  const titleRef   = useRef<HTMLInputElement>(null)
+  const bodyRef    = useRef<HTMLTextAreaElement>(null)
 
-  // ── setup ──
+  const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [])
+
   const [setupNeeded, setSetupNeeded] = useState(false)
+
+  const { data: contacts = [] } = useContacts()
 
   function openNew() {
     setEditPost(null)
@@ -86,6 +101,8 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     setFormTitle('')
     setFormBody('')
     setFormPriority('normal')
+    setFormContactId('')
+    setFormRecordedAt(nowLocalISO())
     setFormError('')
     setShowModal(true)
   }
@@ -96,6 +113,8 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     setFormTitle(post.title)
     setFormBody(post.body ?? '')
     setFormPriority(post.priority)
+    setFormContactId(post.contact_id ?? '')
+    setFormRecordedAt(post.recorded_at ? post.recorded_at.slice(0, 16) : nowLocalISO())
     setFormError('')
     setShowModal(true)
   }
@@ -107,10 +126,14 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   }
 
   useEffect(() => {
-    if (showModal) setTimeout(() => titleRef.current?.focus(), 50)
-  }, [showModal])
+    if (showModal) {
+      setTimeout(() => {
+        titleRef.current?.focus()
+        autoResize(bodyRef.current)
+      }, 50)
+    }
+  }, [showModal, autoResize])
 
-  // ESC 닫기
   useEffect(() => {
     if (!showModal) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal() }
@@ -132,10 +155,18 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     queryFn: async () => {
       const { data, error } = await supabase
         .from('posts').select('*').eq('project_id', id)
-        .order('created_at', { ascending: false })
+        .order('recorded_at', { ascending: false, nullsFirst: false })
       if (error) {
         if (error.code === '42P01' || error.message?.includes('schema cache') || error.message?.includes('posts')) {
           setSetupNeeded(true); return []
+        }
+        // recorded_at 컬럼 없으면 created_at 기준으로 fallback
+        if (error.code === '42703') {
+          const { data: d2, error: e2 } = await supabase
+            .from('posts').select('*').eq('project_id', id)
+            .order('created_at', { ascending: false })
+          if (e2) throw e2
+          return (d2 ?? []).map(p => ({ ...p, recorded_at: null }))
         }
         throw error
       }
@@ -157,13 +188,12 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         body: formBody.trim() || null,
         priority: formType === 'note' ? 'normal' : formPriority,
         status: 'open',
+        contact_id: formContactId || null,
+        recorded_at: formRecordedAt ? new Date(formRecordedAt).toISOString() : new Date().toISOString(),
       })
-      if (error) throw error
+      if (error) throw new Error(error.message)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts', id] })
-      closeModal()
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['posts', id] }); closeModal() },
     onError: (e: Error) => setFormError(e.message),
   })
 
@@ -176,14 +206,13 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         title: formTitle.trim(),
         body: formBody.trim() || null,
         priority: formType === 'note' ? 'normal' : formPriority,
+        contact_id: formContactId || null,
+        recorded_at: formRecordedAt ? new Date(formRecordedAt).toISOString() : null,
         updated_at: new Date().toISOString(),
       }).eq('id', editPost.id)
-      if (error) throw error
+      if (error) throw new Error(error.message)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts', id] })
-      closeModal()
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['posts', id] }); closeModal() },
     onError: (e: Error) => setFormError(e.message),
   })
 
@@ -202,6 +231,9 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts', id] }),
   })
+
+  // 연락처 맵
+  const contactsMap = Object.fromEntries(contacts.map(c => [c.id, c]))
 
   const issues = posts.filter(p => p.type === 'issue')
   const notes  = posts.filter(p => p.type === 'note')
@@ -258,15 +290,11 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         </button>
         {project && <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />}
         <h1 className="text-lg font-bold flex-1 truncate dark:text-gray-100">{project?.name ?? '...'} — 이슈 & 기록</h1>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 transition-colors"
-
-        >
+        <button onClick={openNew}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 transition-colors">
           <Plus size={14} /> 추가
         </button>
       </div>
-
 
       {/* 필터 바 */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
@@ -308,11 +336,12 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
             const isIssue = post.type === 'issue'
             const isOpen  = post.status === 'open'
             const pm = PRIORITY_META[post.priority]
+            const linkedContact = post.contact_id ? contactsMap[post.contact_id] : null
+            const displayTime = post.recorded_at ?? post.created_at
 
             return (
               <div key={post.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex items-start gap-3 px-5 py-4">
-                  {/* 상태 아이콘 */}
                   {isIssue ? (
                     <button
                       onClick={() => toggleStatusMutation.mutate({ postId: post.id, status: isOpen ? 'closed' : 'open' })}
@@ -327,7 +356,6 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                     <BookOpen size={16} className="text-indigo-400 mt-0.5 shrink-0" />
                   )}
 
-                  {/* 본문 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={cn(
@@ -338,11 +366,9 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                       )}>
                         {isIssue ? (isOpen ? '열림' : '닫힘') : '기록'}
                       </span>
-
-                      <span className={cn('text-sm font-medium flex-1 dark:text-gray-200', !isOpen && 'line-through text-gray-400 dark:text-gray-500')}>
+                      <span className={cn('text-sm font-medium flex-1 dark:text-gray-200', !isOpen && isIssue && 'line-through text-gray-400 dark:text-gray-500')}>
                         {post.title}
                       </span>
-
                       {isIssue && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${pm.className}`}>
                           {pm.label}
@@ -350,35 +376,37 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                       )}
                     </div>
 
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                      {fmtTimestamp(post.created_at)}
-                      {post.updated_at !== post.created_at && (
-                        <span className="ml-1.5 text-gray-300 dark:text-gray-600">(수정 {fmtTimestamp(post.updated_at)})</span>
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                        {fmtTimestamp(displayTime)}
+                        {post.updated_at !== post.created_at && (
+                          <span className="ml-1.5 text-gray-300 dark:text-gray-600">(수정 {fmtTimestamp(post.updated_at)})</span>
+                        )}
+                      </p>
+                      {linkedContact && (
+                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 font-medium">
+                          <Users size={9} /> {linkedContact.name}
+                        </span>
                       )}
-                    </p>
+                    </div>
 
                     {post.body && (
                       <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5">
                         {post.body}
                       </p>
-
                     )}
                   </div>
 
-                  {/* 우측 액션 */}
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
-                    <button
-                      onClick={() => openEdit(post)}
+                    <button onClick={() => openEdit(post)}
                       className="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                      title="수정"
-                    >
+                      title="수정">
                       <Pencil size={13} />
                     </button>
                     <button
                       onClick={() => { if (confirm('삭제하시겠습니까?')) deleteMutation.mutate(post.id) }}
                       className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title="삭제"
-                    >
+                      title="삭제">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -395,40 +423,36 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={e => { if (e.target === e.currentTarget) closeModal() }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
-            {/* 모달 헤더 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="font-semibold text-gray-900 dark:text-gray-100">
                 {editPost ? '이슈 / 기록 수정' : '이슈 / 기록 추가'}
               </h2>
-              <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                 <X size={16} />
               </button>
             </div>
 
-            {/* 모달 본문 */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-              {/* 타입 선택 */}
+            {/* 본문 */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {/* 타입 */}
               <div className="flex gap-2">
-                <button
-                  onClick={() => setFormType('issue')}
+                <button onClick={() => setFormType('issue')}
                   className={cn('flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all',
-                    formType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400')}
-                >
+                    formType === 'issue' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400')}>
                   <AlertCircle size={13} /> 이슈
                 </button>
-                <button
-                  onClick={() => setFormType('note')}
+                <button onClick={() => setFormType('note')}
                   className={cn('flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all',
-                    formType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400')}
-                >
+                    formType === 'note' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400')}>
                   <BookOpen size={13} /> 기록
                 </button>
               </div>
 
               {/* 제목 */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                   제목 <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -436,31 +460,61 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                   value={formTitle}
                   onChange={e => { setFormTitle(e.target.value); setFormError('') }}
                   placeholder={formType === 'issue' ? '이슈 제목을 입력하세요' : '기록 제목을 입력하세요'}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
+                  className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all"
                 />
+              </div>
+
+              {/* 날짜/시간 + 연락처 (2열) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                    날짜 / 시간
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formRecordedAt}
+                    onChange={e => setFormRecordedAt(e.target.value)}
+                    className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                    연락처 연결
+                  </label>
+                  <select
+                    value={formContactId}
+                    onChange={e => setFormContactId(e.target.value)}
+                    className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all"
+                  >
+                    <option value="">연결 안 함</option>
+                    {contacts.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}{c.company ? ` · ${c.company.name}` : ''}{c.role ? ` (${c.role})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* 내용 */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  내용
-                  <span className="ml-1.5 font-normal text-gray-400">(선택 · 추후 파일 첨부 지원 예정)</span>
-                </label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">내용</label>
                 <textarea
+                  ref={bodyRef}
                   value={formBody}
-                  onChange={e => setFormBody(e.target.value)}
+                  onChange={e => { setFormBody(e.target.value); autoResize(e.target) }}
                   placeholder={formType === 'issue'
                     ? '발생 상황, 재현 방법, 영향 범위 등을 자세히 적어주세요'
                     : '메모, 회의록, 학습 내용 등을 자유롭게 기록하세요'}
-                  rows={8}
-                  className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 resize-y min-h-[160px] transition-all"
+                  rows={5}
+                  className="w-full text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none overflow-hidden bg-white dark:bg-gray-800 transition-all"
                 />
               </div>
 
               {/* 우선순위 (이슈만) */}
               {formType === 'issue' && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-2">우선순위</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">우선순위</label>
                   <div className="flex items-center gap-2 flex-wrap">
                     {(Object.keys(PRIORITY_META) as PostPriority[]).map(p => (
                       <button key={p} onClick={() => setFormPriority(p)}
@@ -477,26 +531,22 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
               )}
 
               {formError && (
-                <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</p>
+                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg px-3 py-2">{formError}</p>
               )}
             </div>
 
-            {/* 모달 푸터 */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+            {/* 푸터 */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
               <button onClick={closeModal}
-                className="px-4 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors">
+                className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 취소
               </button>
               <button
                 onClick={() => editPost ? updateMutation.mutate() : addMutation.mutate()}
                 disabled={!formTitle.trim() || isPending}
-                className="px-5 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-5 py-2 bg-gray-900 dark:bg-gray-100 dark:text-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-700 dark:hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                {isPending
-                  ? '저장 중...'
-                  : editPost
-                    ? '수정 완료'
-                    : formType === 'issue' ? '이슈 등록' : '기록 저장'}
+                {isPending ? '저장 중...' : editPost ? '수정 완료' : formType === 'issue' ? '이슈 등록' : '기록 저장'}
               </button>
             </div>
           </div>

@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import {
   LayoutDashboard, Calendar, LogOut, Search, X, BarChart2, LayoutGrid,
-  ChevronDown, ChevronRight, GripVertical, Settings2, Sun, Settings,
+  ChevronDown, ChevronRight, GripVertical, Settings2, Sun, Settings, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Project } from '@/types'
@@ -16,6 +16,7 @@ import type { Project } from '@/types'
 const NAV_ITEMS = [
   { href: '/today',     label: '오늘',       icon: Sun },
   { href: '/dashboard', label: '프로젝트',   icon: LayoutDashboard },
+  { href: '/crm',       label: '연락처',     icon: Users },
   { href: '/overview',  label: '전체 현황',  icon: LayoutGrid },
   { href: '/calendar',  label: '캘린더',     icon: Calendar },
   { href: '/report',    label: '주간 리포트', icon: BarChart2 },
@@ -300,7 +301,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           <nav className="space-y-0.5">
             {sortedNav.map(({ href, label, icon: Icon }, i) => {
               const isDashboard = href === '/dashboard'
-              const isActive = pathname === href || (isDashboard && pathname.startsWith('/projects/'))
+              const isCRM = href === '/crm'
+              const isActive = pathname === href || (isDashboard && pathname.startsWith('/projects/')) || (isCRM && pathname.startsWith('/crm/'))
 
               if (editingNav) {
                 return (

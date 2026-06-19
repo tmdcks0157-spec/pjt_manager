@@ -9,6 +9,7 @@ import type { Task, Post } from '@/types'
 import { useProjects } from '@/hooks/useProjects'
 import { useAllColumns } from '@/hooks/useAllColumns'
 import { useAllTasks } from '@/hooks/useAllTasks'
+import { useContacts } from '@/hooks/useCRM'
 import { PRIORITY_META } from '@/lib/constants'
 import {
   Sun, Square, CalendarDays, Clock, Siren,
@@ -52,6 +53,7 @@ export default function TodayPage() {
 
   // ── queries ──
   const { data: projects = [] } = useProjects()
+  const { data: allContacts = [] } = useContacts()
   const { data: columns = [] } = useAllColumns()
   const { data: tasks = [], isLoading } = useAllTasks()
 
@@ -117,6 +119,19 @@ export default function TodayPage() {
   const noDueTasks = useMemo(() => activeTasks.filter(t =>
     !t.due_date && t.priority !== 'urgent' && t.task_type !== 'meeting'
   ), [activeTasks])
+
+  // CRM 연결 태스크 (오늘/초과 마감, 연락처 있는 것)
+  const contactsMap = useMemo(() => Object.fromEntries(allContacts.map(c => [c.id, c])), [allContacts])
+  const crmDueTasks = useMemo(() => activeTasks.filter(t => {
+    if (!t.contact_id || !t.due_date) return false
+    const d = new Date(t.due_date); d.setHours(0, 0, 0, 0)
+    return d <= today
+  }), [activeTasks, today])
+  // 연락처별로 그룹핑 (연락할 사람 목록)
+  const crmContactIds = useMemo(() =>
+    [...new Set(crmDueTasks.map(t => t.contact_id!))],
+    [crmDueTasks]
+  )
 
   // 오늘 완료 처리한 태스크 (완료 컬럼 + updated_at 오늘)
   const todayDoneTasks = useMemo(() =>
@@ -207,7 +222,7 @@ export default function TodayPage() {
   })
 
   const totalToday = todayTasks.length + todayMeetings.length
-  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0
+  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0 && crmContactIds.length === 0
 
   // ── sub-components ──
   function TaskRow({ task }: { task: Task }) {
@@ -481,11 +496,47 @@ export default function TodayPage() {
               </div>
             )}
 
-            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayDoneTasks.length === 0 && (
+            {/* 연락할 것 (CRM 연결 태스크) */}
+            {crmContactIds.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <Users size={14} className="text-teal-500" />
+                  <span className="text-sm font-semibold text-teal-600 dark:text-teal-400">연락할 것</span>
+                  <span className="ml-auto text-xs text-gray-400 font-medium">{crmContactIds.length}건</span>
+                </div>
+                <div className="divide-y divide-gray-50 dark:divide-gray-700">
+                  {crmContactIds.map(contactId => {
+                    const contact = contactsMap[contactId]
+                    if (!contact) return null
+                    const linkedTasks = crmDueTasks.filter(t => t.contact_id === contactId)
+                    return (
+                      <Link key={contactId} href={`/crm/contacts/${contactId}`}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate">
+                            {contact.name}
+                            {contact.company && <span className="font-normal text-gray-400 ml-1">· {contact.company.name}</span>}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                            {linkedTasks[0].title}{linkedTasks.length > 1 ? ` 외 ${linkedTasks.length - 1}건` : ''}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-medium text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-1.5 py-0.5 rounded-full shrink-0">
+                          {linkedTasks.length}개
+                        </span>
+                        <ChevronRight size={13} className="text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {todayMeetings.length === 0 && todayTasks.length === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayDoneTasks.length === 0 && crmContactIds.length === 0 && (
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center text-gray-400 dark:text-gray-500">
                 <CheckCircle2 size={32} className="mx-auto mb-2 text-green-400" />
                 <p className="text-sm">처리할 항목이 없어요</p>
-              </div>
+            </div>
             )}
 
             {/* 오늘 처리 완료 */}
