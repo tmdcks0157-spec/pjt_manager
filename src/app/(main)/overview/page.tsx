@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -17,6 +17,7 @@ import {
   X, ExternalLink, Circle, CheckCircle2, BookOpen, Square,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import AutoTextarea from '@/components/ui/AutoTextarea'
 
 type FilterType      = 'all' | 'overdue' | 'today' | 'urgent' | 'high'
 type ViewType        = 'tasks' | 'issues'
@@ -26,36 +27,6 @@ type SelectedItem    =
   | { kind: 'post'; item: Post; projectId: string }
   | null
 
-function AutoTextarea({
-  value, onChange, placeholder, className,
-}: {
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  className?: string
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-  }, [value])
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={3}
-      style={{ overflow: 'hidden' }}
-      className={cn(
-        'w-full text-sm border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 dark:bg-gray-700 dark:text-gray-100 resize-none transition-all',
-        className
-      )}
-    />
-  )
-}
 
 function fmtTimestamp(d: string) {
   const date = new Date(d)

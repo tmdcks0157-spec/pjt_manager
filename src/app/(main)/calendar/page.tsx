@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import type { Task, Project, CalendarEvent, TaskPriority } from '@/types'
 import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react'
 import Link from 'next/link'
+import { tagColor, getDueStatus, DUE_STATUS_META as DUE_STATUS_META_FULL } from '@/lib/taskUtils'
 
 // ───────── 공휴일 ─────────
 const HOLIDAYS: Record<string, string> = {
@@ -41,33 +42,10 @@ const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 const EVENT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6']
 const MONTH_LABELS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
-const TAG_COLORS = [
-  'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700',
-  'bg-purple-100 text-purple-700', 'bg-pink-100 text-pink-700',
-  'bg-amber-100 text-amber-700', 'bg-teal-100 text-teal-700',
-  'bg-orange-100 text-orange-700', 'bg-indigo-100 text-indigo-700',
-]
-function tagColor(tag: string) {
-  let h = 0
-  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0
-  return TAG_COLORS[h % TAG_COLORS.length]
-}
-
-type DueStatus = 'overdue' | 'today' | 'tomorrow' | null
-function getDueStatus(dueDate: string | null): DueStatus {
-  if (!dueDate) return null
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const due = new Date(dueDate); due.setHours(0, 0, 0, 0)
-  const diff = Math.round((due.getTime() - today.getTime()) / 86400000)
-  if (diff < 0) return 'overdue'
-  if (diff === 0) return 'today'
-  if (diff === 1) return 'tomorrow'
-  return null
-}
 const DUE_STATUS_META = {
-  overdue:  { badgeClass: 'text-red-500',    label: '기한 초과' },
-  today:    { badgeClass: 'text-orange-500', label: '오늘 마감' },
-  tomorrow: { badgeClass: 'text-yellow-600', label: '내일 마감' },
+  overdue:  { badgeClass: DUE_STATUS_META_FULL.overdue.badgeClass,  label: DUE_STATUS_META_FULL.overdue.label },
+  today:    { badgeClass: DUE_STATUS_META_FULL.today.badgeClass,    label: DUE_STATUS_META_FULL.today.label },
+  tomorrow: { badgeClass: DUE_STATUS_META_FULL.tomorrow.badgeClass, label: DUE_STATUS_META_FULL.tomorrow.label },
 }
 
 function toDateKey(date: Date) {
