@@ -38,7 +38,7 @@ export default function TodayPage() {
   // ── 모달/폼 상태 ──
   const [showTaskModal, setShowTaskModal]     = useState(false)
   const [showDoneSection, setShowDoneSection] = useState(true)
-  const [showNoDueSection, setShowNoDueSection] = useState(false)
+  const [showNoDueSection, setShowNoDueSection] = useState(true)
   const [showIssueForm, setShowIssueForm] = useState(false)
   const [issueProjectId, setIssueProjectId] = useState('')
   const [issueTitle, setIssueTitle]         = useState('')
