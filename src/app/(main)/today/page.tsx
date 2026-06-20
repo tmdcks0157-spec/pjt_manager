@@ -120,6 +120,23 @@ export default function TodayPage() {
     !t.due_date && t.priority !== 'urgent' && t.task_type !== 'meeting'
   ), [activeTasks])
 
+  // 이번 주 마감 예정 (오늘 제외, 내일~일요일)
+  const weekEnd = useMemo(() => {
+    const d = new Date(today)
+    const day = d.getDay()
+    const daysUntilSunday = day === 0 ? 0 : 7 - day
+    d.setDate(d.getDate() + daysUntilSunday)
+    d.setHours(23, 59, 59, 999)
+    return d
+  }, [today])
+  const tomorrow = useMemo(() => { const d = new Date(today); d.setDate(d.getDate() + 1); return d }, [today])
+
+  const weekDueTasks = useMemo(() => activeTasks.filter(t => {
+    if (!t.due_date || t.task_type === 'meeting') return false
+    const d = new Date(t.due_date); d.setHours(0, 0, 0, 0)
+    return d >= tomorrow && d <= weekEnd
+  }).sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime()), [activeTasks, tomorrow, weekEnd])
+
   // CRM 연결 태스크 (오늘/초과 마감, 연락처 있는 것)
   const contactsMap = useMemo(() => Object.fromEntries(allContacts.map(c => [c.id, c])), [allContacts])
   const crmDueTasks = useMemo(() => activeTasks.filter(t => {
@@ -222,7 +239,7 @@ export default function TodayPage() {
   })
 
   const totalToday = todayTasks.length + todayMeetings.length
-  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0 && crmContactIds.length === 0
+  const isEmpty = totalToday === 0 && overdueTasks.length === 0 && urgentTasks.length === 0 && noDueTasks.length === 0 && todayPosts.length === 0 && todayCreatedTasks.length === 0 && todayDoneTasks.length === 0 && crmContactIds.length === 0 && weekDueTasks.length === 0
 
   // ── sub-components ──
   function TaskRow({ task }: { task: Task }) {
@@ -594,8 +611,49 @@ export default function TodayPage() {
             )}
           </div>
 
-          {/* ── 오른쪽: 오늘 등록한 것 ── */}
+          {/* ── 오른쪽: 이번 주 마감 예정 + 오늘 등록한 것 ── */}
           <div className="space-y-4">
+
+            {/* 이번 주 마감 예정 */}
+            {weekDueTasks.length > 0 && (
+              <>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">이번 주 마감 예정</p>
+                <div className="bg-white dark:bg-gray-800 border border-blue-100 dark:border-blue-900/40 rounded-2xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-50 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10">
+                    <CalendarDays size={14} className="text-blue-500" />
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">이번 주 마감</span>
+                    <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 font-medium">{weekDueTasks.length}개</span>
+                  </div>
+                  <div className="divide-y divide-gray-50 dark:divide-gray-700">
+                    {weekDueTasks.map(task => {
+                      const proj = projMap[task.project_id]
+                      const pm = PRIORITY_META[task.priority]
+                      const dueDate = new Date(task.due_date!)
+                      dueDate.setHours(0, 0, 0, 0)
+                      const diffDays = Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                      const dayLabel = diffDays === 1 ? '내일' : dueDate.toLocaleDateString('ko-KR', { weekday: 'short', month: 'numeric', day: 'numeric' })
+                      return (
+                        <button
+                          key={task.id}
+                          onClick={() => router.push(`/projects/${task.project_id}`)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group text-left"
+                        >
+                          {proj && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />}
+                          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">{task.title}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {task.priority !== 'normal' && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${pm.className}`}>{pm.label}</span>
+                            )}
+                            <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full">{dayLabel}</span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">오늘 등록한 것</p>
 
             {/* 오늘 등록된 태스크 (프로젝트별) */}
