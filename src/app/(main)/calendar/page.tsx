@@ -352,7 +352,7 @@ export default function CalendarPage() {
   const [viewMode, setViewMode]         = useState<'month' | 'week'>('month')
   const [current, setCurrent]           = useState({ year: today.getFullYear(), month: today.getMonth() })
   const [weekStart, setWeekStart]       = useState<Date>(() => getWeekSunday(today))
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date>(today)
   const [showEventModal, setShowEventModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>()
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -524,22 +524,22 @@ export default function CalendarPage() {
 
   // ── 공통 ──
   const todayKey      = toDateKey(today)
-  const selectedKey   = selectedDate ? toDateKey(selectedDate) : null
-  const selectedTasks = selectedKey ? (tasksByDate[selectedKey] ?? []) : []
-  const selectedEvents = selectedKey ? (eventsByDate[selectedKey] ?? []) : []
-  const selectedHoliday = selectedKey ? HOLIDAYS[selectedKey] : null
+  const selectedKey   = toDateKey(selectedDate)
+  const selectedTasks = tasksByDate[selectedKey] ?? []
+  const selectedEvents = eventsByDate[selectedKey] ?? []
+  const selectedHoliday = HOLIDAYS[selectedKey] ?? null
 
   const monthLabel = new Date(current.year, current.month, 1).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
 
-  function prevMonth() { setCurrent(p => { const m = p.month - 1; return m < 0 ? { year: p.year - 1, month: 11 } : { year: p.year, month: m } }); setSelectedDate(null) }
-  function nextMonth() { setCurrent(p => { const m = p.month + 1; return m > 11 ? { year: p.year + 1, month: 0 } : { year: p.year, month: m } }); setSelectedDate(null) }
-  function prevWeek()  { setWeekStart(p => { const d = new Date(p); d.setDate(d.getDate() - 7); return d }); setSelectedDate(null) }
-  function nextWeek()  { setWeekStart(p => { const d = new Date(p); d.setDate(d.getDate() + 7); return d }); setSelectedDate(null) }
+  function prevMonth() { setCurrent(p => { const m = p.month - 1; return m < 0 ? { year: p.year - 1, month: 11 } : { year: p.year, month: m } }); setSelectedDate(today) }
+  function nextMonth() { setCurrent(p => { const m = p.month + 1; return m > 11 ? { year: p.year + 1, month: 0 } : { year: p.year, month: m } }); setSelectedDate(today) }
+  function prevWeek()  { setWeekStart(p => { const d = new Date(p); d.setDate(d.getDate() - 7); return d }); setSelectedDate(today) }
+  function nextWeek()  { setWeekStart(p => { const d = new Date(p); d.setDate(d.getDate() + 7); return d }); setSelectedDate(today) }
 
   function goToToday() {
     setCurrent({ year: today.getFullYear(), month: today.getMonth() })
     setWeekStart(getWeekSunday(today))
-    setSelectedDate(null)
+    setSelectedDate(today)
   }
   function switchToWeek() {
     const base = selectedDate ?? today
@@ -551,7 +551,7 @@ export default function CalendarPage() {
     setViewMode('month')
   }
   function openPicker() { setPickerYear(current.year); setShowDatePicker(true) }
-  function pickMonth(month: number) { setCurrent({ year: pickerYear, month }); setSelectedDate(null); setShowDatePicker(false) }
+  function pickMonth(month: number) { setCurrent({ year: pickerYear, month }); setSelectedDate(today); setShowDatePicker(false) }
 
   // ── 드롭 공통 핸들러 ──
   function handleDrop(e: React.DragEvent, key: string | null) {
@@ -577,7 +577,7 @@ export default function CalendarPage() {
     return (
       <div
         key={key}
-        onClick={() => setSelectedDate(isSelected ? null : date)}
+        onClick={() => setSelectedDate(date)}
         onDragOver={e => { if (!draggingTask) return; e.preventDefault(); setDragOverKey(key) }}
         onDragLeave={() => setDragOverKey(null)}
         onDrop={e => handleDrop(e, key)}
@@ -962,8 +962,7 @@ export default function CalendarPage() {
         </div>
 
         {/* 사이드 패널 */}
-        {selectedDate && (
-          <div className="w-72 shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col">
+        <div className="w-72 shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col">
             <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -974,15 +973,10 @@ export default function CalendarPage() {
                   일정 {selectedEvents.length}개 · 태스크 {selectedTasks.length}개
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => { setEditingEvent(undefined); setShowEventModal(true) }}
-                  className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                  <Plus size={15} />
-                </button>
-                <button onClick={() => setSelectedDate(null)} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                  <X size={15} />
-                </button>
-              </div>
+              <button onClick={() => { setEditingEvent(undefined); setShowEventModal(true) }}
+                className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                <Plus size={15} />
+              </button>
             </div>
             <div className="flex-1 overflow-auto p-3 space-y-2">
               {!selectedHoliday && selectedEvents.length === 0 && selectedTasks.length === 0 ? (
@@ -1022,7 +1016,6 @@ export default function CalendarPage() {
               )}
             </div>
           </div>
-        )}
       </div>
     </div>
   )

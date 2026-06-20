@@ -10,7 +10,9 @@ import { useAllColumns } from '@/hooks/useAllColumns'
 import { PRIORITY_META } from '@/lib/constants'
 import { CheckCircle2, Plus, AlertCircle, TrendingUp, Calendar, FolderKanban, Clock, MessageSquare, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
+const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
 function getWeekRange(offset = 0) {
   const now = new Date()
@@ -25,10 +27,15 @@ function fmt(date: Date) {
   return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
 }
 
+function toDateKey(dateStr: string) {
+  return dateStr.split('T')[0]
+}
+
 export default function WeeklyReportPage() {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
   const { start, end } = useMemo(() => getWeekRange(weekOffset), [weekOffset])
+  const todayKey = new Date().toISOString().split('T')[0]
 
   const { data: projects = [] } = useProjects()
   const { data: columns = [] } = useAllColumns()
@@ -48,7 +55,6 @@ export default function WeeklyReportPage() {
     },
   })
 
-  // 이번 주 완료된 태스크 (updated_at 기준)
   const { data: completedTasks = [] } = useQuery<Task[]>({
     queryKey: ['weekly-completed-tasks', start.toISOString()],
     queryFn: async () => {
@@ -68,7 +74,6 @@ export default function WeeklyReportPage() {
     },
   })
 
-  // 이번 주 이슈/기록
   const { data: weeklyPosts = [] } = useQuery<Post[]>({
     queryKey: ['weekly-posts', start.toISOString()],
     queryFn: async () => {
@@ -86,7 +91,6 @@ export default function WeeklyReportPage() {
     },
   })
 
-  // 기한 초과 태스크
   const { data: overdueTasks = [] } = useQuery<Task[]>({
     queryKey: ['weekly-overdue-tasks'],
     queryFn: async () => {
@@ -108,6 +112,28 @@ export default function WeeklyReportPage() {
   const projMap = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p])), [projects])
   const doneColumnIds = useMemo(() => new Set(columns.filter(c => c.name === '완료').map(c => c.id)), [columns])
 
+  // 7일 배열 (월~일)
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    return d
+  }), [start])
+
+  // 요일별 태스크 그루핑
+  const tasksByDay = useMemo(() => {
+    const map: Record<string, { completed: Task[]; created: Task[] }> = {}
+    days.forEach(d => { map[toDateKey(d.toISOString())] = { completed: [], created: [] } })
+    for (const t of completedTasks) {
+      const key = toDateKey(t.updated_at)
+      if (map[key]) map[key].completed.push(t)
+    }
+    for (const t of weekTasks) {
+      const key = toDateKey(t.created_at)
+      if (map[key]) map[key].created.push(t)
+    }
+    return map
+  }, [days, completedTasks, weekTasks])
+
   const byProject = useMemo(() => {
     const map: Record<string, { created: Task[]; completed: Task[]; overdue: Task[]; posts: Post[] }> = {}
     for (const p of projects) map[p.id] = { created: [], completed: [], overdue: [], posts: [] }
@@ -122,6 +148,33 @@ export default function WeeklyReportPage() {
     const ps = byProject[p.id]
     return ps && (ps.created.length + ps.completed.length + ps.overdue.length + ps.posts.length) > 0
   })
+
+  function DayTaskItem({ task, type }: { task: Task; type: 'completed' | 'created' }) {
+    const proj = projMap[task.project_id]
+    return (
+      <button
+        onClick={() => router.push(`/projects/${task.project_id}`)}
+        className={cn(
+          'w-full text-left flex items-start gap-1.5 py-1 px-1.5 rounded transition-colors group',
+          type === 'completed'
+            ? 'bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20'
+            : 'bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20'
+        )}
+      >
+        {type === 'completed'
+          ? <CheckCircle2 size={10} className="text-green-500 shrink-0 mt-0.5" />
+          : <Plus size={10} className="text-blue-500 shrink-0 mt-0.5" />
+        }
+        <span className={cn('text-[11px] leading-tight break-words min-w-0',
+          type === 'completed'
+            ? 'line-through text-gray-400 dark:text-gray-500'
+            : 'text-gray-700 dark:text-gray-300'
+        )}>
+          {task.title}
+        </span>
+      </button>
+    )
+  }
 
   function TaskRow({ task }: { task: Task }) {
     const proj = projMap[task.project_id]
@@ -154,8 +207,10 @@ export default function WeeklyReportPage() {
     )
   }
 
+  const isEmpty = weekTasks.length === 0 && completedTasks.length === 0 && overdueTasks.length === 0
+
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto">
       {/* 헤더 */}
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -195,7 +250,7 @@ export default function WeeklyReportPage() {
 
       {isLoading ? (
         <p className="text-gray-400 text-sm">불러오는 중...</p>
-      ) : weekTasks.length === 0 && completedTasks.length === 0 && overdueTasks.length === 0 ? (
+      ) : isEmpty ? (
         <div className="text-center py-20 text-gray-400">
           <TrendingUp size={40} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">이번 주 활동이 없습니다.</p>
@@ -212,24 +267,89 @@ export default function WeeklyReportPage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 생성</p>
             </div>
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
-              <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center mx-auto mb-2">
+              <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-2">
                 <CheckCircle2 size={15} className="text-green-500" />
               </div>
-              <p className="text-2xl font-bold text-green-600">{completedTasks.length}</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{completedTasks.length}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 완료</p>
             </div>
-            <div className={`border rounded-xl p-4 text-center ${overdueTasks.length > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2 ${overdueTasks.length > 0 ? 'bg-red-100 dark:bg-red-900/40' : 'bg-gray-50 dark:bg-gray-700'}`}>
+            <div className={cn('border rounded-xl p-4 text-center',
+              overdueTasks.length > 0
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+            )}>
+              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2',
+                overdueTasks.length > 0 ? 'bg-red-100 dark:bg-red-900/40' : 'bg-gray-50 dark:bg-gray-700'
+              )}>
                 <AlertCircle size={15} className={overdueTasks.length > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'} />
               </div>
-              <p className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'dark:text-gray-100'}`}>{overdueTasks.length}</p>
+              <p className={cn('text-2xl font-bold', overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'dark:text-gray-100')}>{overdueTasks.length}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기한 초과</p>
             </div>
           </div>
 
-          {/* 2컬럼 레이아웃: 왼쪽(태스크 목록) / 오른쪽(프로젝트별 현황) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* 왼쪽: 태스크 섹션들 */}
+          {/* 요일별 그리드 */}
+          <div className="grid grid-cols-7 gap-2 mb-8">
+            {days.map((day, i) => {
+              const key = toDateKey(day.toISOString())
+              const dayData = tasksByDay[key] ?? { completed: [], created: [] }
+              const isToday = key === todayKey
+              const isWeekend = i >= 5
+              const hasActivity = dayData.completed.length > 0 || dayData.created.length > 0
+
+              return (
+                <div key={key} className={cn(
+                  'rounded-xl border p-3 min-h-[180px] transition-colors',
+                  isToday
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+                  !hasActivity && 'opacity-60'
+                )}>
+                  <div className="text-center mb-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+                    <p className={cn('text-[11px] font-medium',
+                      isWeekend ? 'text-red-400 dark:text-red-500' : 'text-gray-400 dark:text-gray-500'
+                    )}>
+                      {DAY_LABELS[i]}
+                    </p>
+                    <p className={cn('text-base font-bold mt-0.5',
+                      isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'
+                    )}>
+                      {day.getDate()}
+                    </p>
+                  </div>
+
+                  {dayData.completed.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-[10px] font-medium text-green-600 dark:text-green-500 mb-1 flex items-center gap-0.5">
+                        <CheckCircle2 size={9} /> 완료 {dayData.completed.length}
+                      </p>
+                      <div className="space-y-0.5">
+                        {dayData.completed.map(t => <DayTaskItem key={t.id} task={t} type="completed" />)}
+                      </div>
+                    </div>
+                  )}
+
+                  {dayData.created.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-0.5">
+                        <Plus size={9} /> 생성 {dayData.created.length}
+                      </p>
+                      <div className="space-y-0.5">
+                        {dayData.created.map(t => <DayTaskItem key={t.id} task={t} type="created" />)}
+                      </div>
+                    </div>
+                  )}
+
+                  {!hasActivity && (
+                    <p className="text-[11px] text-gray-300 dark:text-gray-600 text-center mt-6">–</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* 하단: 기한초과 + 이슈/기록 + 프로젝트별 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {overdueTasks.length > 0 && (
                 <section>
@@ -238,28 +358,6 @@ export default function WeeklyReportPage() {
                   </h2>
                   <div className="bg-white dark:bg-gray-800 border border-red-100 dark:border-red-900/50 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
                     {overdueTasks.map(t => <TaskRow key={t.id} task={t} />)}
-                  </div>
-                </section>
-              )}
-
-              {completedTasks.length > 0 && (
-                <section>
-                  <h2 className="flex items-center gap-2 text-sm font-semibold text-green-600 mb-3">
-                    <CheckCircle2 size={14} /> 이번 주 완료 ({completedTasks.length})
-                  </h2>
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
-                    {completedTasks.map(t => <TaskRow key={t.id} task={t} />)}
-                  </div>
-                </section>
-              )}
-
-              {weekTasks.length > 0 && (
-                <section>
-                  <h2 className="flex items-center gap-2 text-sm font-semibold text-blue-600 mb-3">
-                    <Plus size={14} /> 이번 주 생성 ({weekTasks.length})
-                  </h2>
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden divide-y divide-gray-50 dark:divide-gray-700">
-                    {weekTasks.map(t => <TaskRow key={t.id} task={t} />)}
                   </div>
                 </section>
               )}
@@ -276,9 +374,7 @@ export default function WeeklyReportPage() {
                       const isOpen = post.status === 'open'
                       const pm = PRIORITY_META[post.priority as keyof typeof PRIORITY_META]
                       return (
-                        <Link
-                          key={post.id}
-                          href={`/projects/${post.project_id}/issues`}
+                        <Link key={post.id} href={`/projects/${post.project_id}/issues`}
                           className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                           {isNote
@@ -287,9 +383,11 @@ export default function WeeklyReportPage() {
                           }
                           <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{post.title}</span>
                           {isNote ? (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium shrink-0">기록</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 font-medium shrink-0">기록</span>
                           ) : (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${isOpen ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                            <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0',
+                              isOpen ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
+                            )}>
                               {isOpen ? '열림' : '닫힘'}
                             </span>
                           )}
@@ -310,7 +408,6 @@ export default function WeeklyReportPage() {
               )}
             </div>
 
-            {/* 오른쪽: 프로젝트별 현황 */}
             {activeProjects.length > 0 && (
               <div className="lg:col-span-1">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
@@ -320,9 +417,7 @@ export default function WeeklyReportPage() {
                   {activeProjects.map(p => {
                     const ps = byProject[p.id]
                     return (
-                      <button
-                        key={p.id}
-                        onClick={() => router.push(`/projects/${p.id}`)}
+                      <button key={p.id} onClick={() => router.push(`/projects/${p.id}`)}
                         className="w-full text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-sm transition-all"
                       >
                         <div className="flex items-center gap-2 mb-2">
@@ -331,12 +426,12 @@ export default function WeeklyReportPage() {
                         </div>
                         <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
                           {ps.created.length > 0 && (
-                            <span className="flex items-center gap-1 text-blue-600">
+                            <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
                               <Plus size={11} /> {ps.created.length}개 생성
                             </span>
                           )}
                           {ps.completed.length > 0 && (
-                            <span className="flex items-center gap-1 text-green-600">
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                               <CheckCircle2 size={11} /> {ps.completed.length}개 완료
                             </span>
                           )}
@@ -346,7 +441,7 @@ export default function WeeklyReportPage() {
                             </span>
                           )}
                           {ps.posts.length > 0 && (
-                            <span className="flex items-center gap-1 text-purple-600">
+                            <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
                               <MessageSquare size={11} /> {ps.posts.filter(p => p.type === 'issue').length}개 이슈
                               {ps.posts.filter(p => p.type === 'note').length > 0 && (
                                 <> · {ps.posts.filter(p => p.type === 'note').length}개 기록</>
