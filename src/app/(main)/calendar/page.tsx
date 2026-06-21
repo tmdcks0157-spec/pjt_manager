@@ -28,8 +28,10 @@ function buildHolidayMap(): Record<string, string> {
   const map: Record<string, string> = {}
 
   for (let y = baseYear - 1; y <= baseYear + 3; y++) {
-    // date-holidays 미포함 — 근로자의 날
+    // 근로자의 날 — 라이브러리 미포함, 별도 법률(대체공휴일 미적용)
     map[`${y}-05-01`] = '근로자의 날'
+    // 제헌절 — 라이브러리가 2025년을 observance로 잘못 분류
+    map[`${y}-07-17`] = '제헌절'
 
     for (const h of hd.getHolidays(y) as { date: string; name: string; type: string }[]) {
       if (h.type !== 'public') continue
@@ -37,16 +39,34 @@ function buildHolidayMap(): Record<string, string> {
       const name = HOLIDAY_NAME_MAP[h.name] ?? h.name
       map[key] = name
 
-      // 설날·추석 연휴 전날 / 다음날 추가
+      // 설날·추석: 전날/다음날 연휴 추가
       if (name === '설날' || name === '추석') {
-        const base = new Date(key)
-        const prev = new Date(base); prev.setDate(prev.getDate() - 1)
-        const next = new Date(base); next.setDate(next.getDate() + 1)
+        const [ky, km, kd] = key.split('-').map(Number)
+        const prev = new Date(ky, km - 1, kd - 1)
+        const next = new Date(ky, km - 1, kd + 1)
         if (!map[buildHolidayKey(prev)]) map[buildHolidayKey(prev)] = `${name} 연휴`
         if (!map[buildHolidayKey(next)]) map[buildHolidayKey(next)] = `${name} 연휴`
       }
     }
   }
+
+  // 대체공휴일: 공휴일(근로자의 날·제헌절 제외)이 토/일이면 다음 평일에 추가
+  // 처리 순서를 보장하기 위해 정렬 후 순회 (이미 추가된 대체공휴일은 map에 반영됨)
+  const NO_SUBSTITUTE = new Set(['근로자의 날', '제헌절'])
+  for (const key of Object.keys(map).sort()) {
+    if (NO_SUBSTITUTE.has(map[key])) continue
+    const [ky, km, kd] = key.split('-').map(Number)
+    const dow = new Date(ky, km - 1, kd).getDay() // 0=일, 6=토
+    if (dow !== 0 && dow !== 6) continue
+
+    // 다음 평일 중 아직 공휴일이 아닌 날 탐색
+    const sub = new Date(ky, km - 1, kd + 1)
+    while (sub.getDay() === 0 || sub.getDay() === 6 || map[buildHolidayKey(sub)]) {
+      sub.setDate(sub.getDate() + 1)
+    }
+    map[buildHolidayKey(sub)] = '대체공휴일'
+  }
+
   return map
 }
 
