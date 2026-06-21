@@ -59,7 +59,7 @@ function getWeekSunday(date: Date): Date {
 }
 
 // ───────── SidebarTaskCard ─────────
-function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
+function SidebarTaskCard({ task, proj, isDone }: { task: Task; proj?: Project; isDone?: boolean }) {
   const [expanded, setExpanded] = useState(() => {
     try {
       const stored: string[] = JSON.parse(localStorage.getItem('collapsed-cal-cards') ?? '[]')
@@ -79,7 +79,7 @@ function SidebarTaskCard({ task, proj }: { task: Task; proj?: Project }) {
     })
   }
   const isMeeting = task.task_type === 'meeting'
-  const dueStatus = isMeeting ? null : getDueStatus(task.due_date)
+  const dueStatus = isMeeting || isDone ? null : getDueStatus(task.due_date)
   const dueMeta = dueStatus ? DUE_STATUS_META[dueStatus] : null
   const checklist = task.checklist_items ?? []
   const completedCount = checklist.filter(i => i.completed).length
@@ -988,7 +988,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {selectedTasks.map(task => (
-                    <SidebarTaskCard key={task.id} task={task} proj={projectMap[task.project_id]} />
+                    <SidebarTaskCard key={task.id} task={task} proj={projectMap[task.project_id]} isDone={doneColumnIds.has(task.status)} />
                   ))}
                 </>
               )}
