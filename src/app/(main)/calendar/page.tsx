@@ -7,25 +7,50 @@ import type { Task, Project, CalendarEvent, TaskPriority } from '@/types'
 import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react'
 import Link from 'next/link'
 import { tagColor, getDueStatus, DUE_STATUS_META as DUE_STATUS_META_FULL } from '@/lib/taskUtils'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const HolidaysLib = require('date-holidays')
 
-// ───────── 공휴일 ─────────
-const HOLIDAYS: Record<string, string> = {
-  '2025-01-01': '신정',
-  '2025-01-27': '설날 연휴', '2025-01-28': '설날', '2025-01-29': '설날 연휴', '2025-01-30': '설날 대체공휴일',
-  '2025-03-01': '삼일절',
-  '2025-05-01': '근로자의 날', '2025-05-05': '어린이날 · 부처님오신날', '2025-05-06': '대체공휴일',
-  '2025-06-06': '현충일', '2025-07-17': '제헌절', '2025-08-15': '광복절', '2025-10-03': '개천절',
-  '2025-10-05': '추석 연휴', '2025-10-06': '추석', '2025-10-07': '추석 연휴', '2025-10-08': '추석 대체공휴일',
-  '2025-10-09': '한글날', '2025-12-25': '성탄절',
-  '2026-01-01': '신정',
-  '2026-02-16': '설날 연휴', '2026-02-17': '설날', '2026-02-18': '설날 연휴',
-  '2026-03-01': '삼일절', '2026-03-02': '삼일절 대체공휴일',
-  '2026-05-01': '근로자의 날', '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '부처님오신날 대체공휴일',
-  '2026-06-03': '전국동시지방선거', '2026-06-06': '현충일', '2026-07-17': '제헌절',
-  '2026-08-15': '광복절', '2026-08-17': '광복절 대체공휴일',
-  '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴',
-  '2026-10-03': '개천절', '2026-10-09': '한글날', '2026-12-25': '성탄절',
+// ───────── 공휴일 (date-holidays 라이브러리 기반, 자동 연장) ─────────
+const HOLIDAY_NAME_MAP: Record<string, string> = {
+  '3·1절': '삼일절',
+  '석가탄신일': '부처님오신날',
+  '기독탄신일': '성탄절',
 }
+
+function buildHolidayKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function buildHolidayMap(): Record<string, string> {
+  const hd = new HolidaysLib('KR')
+  hd.setLanguages('ko')
+  const baseYear = new Date().getFullYear()
+  const map: Record<string, string> = {}
+
+  for (let y = baseYear - 1; y <= baseYear + 3; y++) {
+    // date-holidays 미포함 — 근로자의 날
+    map[`${y}-05-01`] = '근로자의 날'
+
+    for (const h of hd.getHolidays(y) as { date: string; name: string; type: string }[]) {
+      if (h.type !== 'public') continue
+      const key = h.date.substring(0, 10)
+      const name = HOLIDAY_NAME_MAP[h.name] ?? h.name
+      map[key] = name
+
+      // 설날·추석 연휴 전날 / 다음날 추가
+      if (name === '설날' || name === '추석') {
+        const base = new Date(key)
+        const prev = new Date(base); prev.setDate(prev.getDate() - 1)
+        const next = new Date(base); next.setDate(next.getDate() + 1)
+        if (!map[buildHolidayKey(prev)]) map[buildHolidayKey(prev)] = `${name} 연휴`
+        if (!map[buildHolidayKey(next)]) map[buildHolidayKey(next)] = `${name} 연휴`
+      }
+    }
+  }
+  return map
+}
+
+const HOLIDAYS = buildHolidayMap()
 
 // ───────── constants ─────────
 const PRIORITY_DOT: Record<string, string> = {
