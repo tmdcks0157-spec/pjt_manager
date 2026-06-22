@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { useTheme, type Theme } from '@/providers/ThemeProvider'
 import { useAuthStore } from '@/stores/auth-store'
 import { supabase } from '@/lib/supabase'
-import { Monitor, Moon, Sun, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Monitor, Moon, Sun, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 type StartPage = '/today' | '/dashboard' | '/overview' | '/calendar' | '/report'
 
@@ -25,8 +26,39 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: React.ElementType }[] 
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
+  const router = useRouter()
   const [startPage, setStartPage] = useState<StartPage>('/today')
+
+  // 계정 삭제 상태
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDeleteAccount() {
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('세션 없음')
+
+      const res = await fetch('/api/delete-account', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? '삭제 실패')
+      }
+      await logout()
+      router.replace('/login')
+    } catch (e: unknown) {
+      setDeleteError(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다.')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   // 비밀번호 변경 상태
   const [currentPw, setCurrentPw]   = useState('')
@@ -204,7 +236,7 @@ export default function SettingsPage() {
       </section>
 
       {/* 시작 페이지 */}
-      <section>
+      <section className="mb-8">
         <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">로그인 후 시작 페이지</h2>
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           {START_PAGE_OPTIONS.map(({ value, label }, i) => (
@@ -227,6 +259,70 @@ export default function SettingsPage() {
           ))}
         </div>
       </section>
+      {/* 계정 삭제 */}
+      <section>
+        <h2 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3">위험 구역</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-900 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">계정 삭제</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.</p>
+            </div>
+            <button
+              onClick={() => { setShowDeleteModal(true); setDeleteConfirm(''); setDeleteError('') }}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <Trash2 size={13} />
+              계정 삭제
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 계정 삭제 확인 모달 */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-80 p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">정말 계정을 삭제할까요?</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                프로젝트, 태스크, CRM 데이터 등 <span className="font-semibold text-red-500">모든 데이터가 영구 삭제</span>됩니다. 이 작업은 되돌릴 수 없습니다.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-gray-500 dark:text-gray-400">
+                확인을 위해 아래에 <span className="font-bold text-gray-700 dark:text-gray-300">삭제</span>를 입력하세요
+              </label>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                placeholder="삭제"
+                autoFocus
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+            </div>
+            {deleteError && (
+              <p className="text-xs text-red-500">{deleteError}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirm !== '삭제' || deleteLoading}
+                className="flex-1 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleteLoading ? '삭제 중...' : '영구 삭제'}
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
