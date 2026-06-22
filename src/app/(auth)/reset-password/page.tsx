@@ -15,9 +15,24 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [hashError, setHashError] = useState('')
 
   useEffect(() => {
-    // Supabase가 URL 해시의 access_token을 파싱해 PASSWORD_RECOVERY 이벤트를 발생시킴
+    // URL 해시에 Supabase 에러가 포함된 경우 먼저 감지 (만료/무효 링크)
+    const hash = window.location.hash
+    if (hash.includes('error=')) {
+      const params = new URLSearchParams(hash.slice(1))
+      const code = params.get('error_code') ?? ''
+      const desc = params.get('error_description') ?? ''
+      if (code === 'otp_expired') {
+        setHashError('링크가 만료되었습니다. 새로 요청해주세요.')
+      } else {
+        setHashError(desc.replace(/\+/g, ' ') || '유효하지 않은 링크입니다.')
+      }
+      return
+    }
+
+    // 정상 토큰: Supabase가 해시를 파싱해 PASSWORD_RECOVERY 이벤트 발생
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
     })
@@ -54,6 +69,31 @@ export default function ResetPasswordPage() {
         <div className="text-center space-y-3">
           <p className="text-xl font-semibold dark:text-gray-100">비밀번호가 변경되었습니다</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">잠시 후 로그인 페이지로 이동합니다.</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (hashError) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-900">
+        <div className="w-full max-w-sm space-y-6">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
+            <ArrowLeft size={14} />
+            로그인으로 돌아가기
+          </Link>
+          <div className="text-center space-y-3 py-6">
+            <p className="text-base font-semibold text-gray-800 dark:text-gray-100">{hashError}</p>
+            <Link
+              href="/forgot-password"
+              className="inline-block mt-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+            >
+              재설정 링크 다시 받기
+            </Link>
+          </div>
         </div>
       </main>
     )
