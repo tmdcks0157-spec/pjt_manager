@@ -21,8 +21,13 @@ export default function ForgotPasswordPage() {
       })
       if (error) throw error
       setSent(true)
-    } catch {
-      setError('메일 발송에 실패했습니다. 이메일 주소를 확인해주세요.')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message.toLowerCase() : ''
+      if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('429')) {
+        setError('잠시 후 다시 시도해주세요. (1분에 1회 발송 가능)')
+      } else {
+        setError('메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      }
     } finally {
       setLoading(false)
     }
