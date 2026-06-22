@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import type { Task, Project, CalendarEvent, TaskPriority } from '@/types'
 import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react'
 import Link from 'next/link'
@@ -254,7 +255,7 @@ function QuickTaskModal({ date, projects, onClose, onSave }: {
         <div className="space-y-3">
           <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSave()}
-            placeholder="태스크 이름..."
+            placeholder="태스크 이름..." maxLength={200}
             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
 
           <div className="grid grid-cols-2 gap-3">
@@ -317,7 +318,7 @@ function EventModal({ initialDate, event, onClose, onSave, onDelete }: {
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">제목</label>
             <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && title.trim()) { onSave({ title, date, end_date: endDate || null, color, description }); onClose() } }}
-              placeholder="일정 이름..."
+              placeholder="일정 이름..." maxLength={200}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -345,7 +346,7 @@ function EventModal({ initialDate, event, onClose, onSave, onDelete }: {
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">메모 <span className="text-gray-300 dark:text-gray-600">(선택)</span></label>
             <textarea value={description} onChange={e => setDesc(e.target.value)}
-              placeholder="내용..." rows={2}
+              placeholder="내용..." rows={2} maxLength={2000}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500 resize-none" />
           </div>
         </div>
@@ -437,8 +438,8 @@ export default function CalendarPage() {
   })
   const createEventMutation = useMutation({
     mutationFn: async (body: Partial<CalendarEvent>) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('calendar_events').insert({ ...body, user_id: user!.id })
+      const userId = await requireUserId()
+      const { error } = await supabase.from('calendar_events').insert({ ...body, user_id: userId })
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calendar-events'] }),
@@ -460,12 +461,12 @@ export default function CalendarPage() {
 
   const createTaskMutation = useMutation({
     mutationFn: async ({ title, projectId, priority, dueDate }: { title: string; projectId: string; priority: TaskPriority; dueDate: string }) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
       const { data: cols } = await supabase.from('columns').select('id').eq('project_id', projectId).order('order').limit(1)
       const columnId = cols?.[0]?.id
       if (!columnId) throw new Error('프로젝트에 컬럼이 없습니다')
       const { error } = await supabase.from('tasks').insert({
-        title, project_id: projectId, user_id: user!.id,
+        title, project_id: projectId, user_id: userId,
         status: columnId, priority, due_date: dueDate,
         description: '', notes: '', tags: [], order: 0, archived: false,
       })

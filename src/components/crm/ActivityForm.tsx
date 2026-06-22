@@ -76,7 +76,7 @@ export default function ActivityForm({ contactId, onClose }: Props) {
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
-            placeholder="제목 (예: 예산 확인 통화)"
+            placeholder="제목 (예: 예산 확인 통화)" maxLength={200}
             required
             className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
           />
@@ -91,7 +91,7 @@ export default function ActivityForm({ contactId, onClose }: Props) {
           value={body}
           onChange={e => setBody(e.target.value)}
           rows={3}
-          placeholder="내용 (선택사항)..."
+          placeholder="내용 (선택사항)..." maxLength={2000}
           className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
         />
         <div className="flex justify-end gap-2">

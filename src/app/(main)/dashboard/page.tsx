@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import type { Project, Task } from '@/types'
 import { Plus, FolderKanban, Trash2, Pencil, X, AlertCircle, CheckCircle2, Clock, Layers, Archive, ArchiveRestore, ChevronDown, ChevronRight, RotateCcw, Siren, TrendingUp, ArrowDownAZ, ArrowUpDown } from 'lucide-react'
@@ -18,6 +19,15 @@ const SORT_OPTIONS: { key: SortOrder; label: string }[] = [
 ]
 
 const PROJECT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6']
+
+// 프로젝트 생성 시 함께 만들 기본 칸반 컬럼.
+// (projects/[id] 의 lazy 생성 경로에 의존하면 동시 접속 시 중복 컬럼이 생길 수 있어,
+//  생성 시점에 한 번만 만들도록 한다.)
+const DEFAULT_COLUMNS = [
+  { name: '할 일',  color: '#f3f4f6', order: 0 },
+  { name: '진행 중', color: '#eff6ff', order: 1 },
+  { name: '완료',   color: '#f0fdf4', order: 2 },
+]
 
 function EditProjectModal({ project, onClose, onSave }: {
   project: Project
@@ -39,13 +49,13 @@ function EditProjectModal({ project, onClose, onSave }: {
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="프로젝트 이름"
+          placeholder="프로젝트 이름" maxLength={80}
           className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
         />
         <input
           value={description}
           onChange={e => setDescription(e.target.value)}
-          placeholder="설명 (선택)"
+          placeholder="설명 (선택)" maxLength={200}
           className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
         />
         <div className="flex items-center gap-2">
@@ -200,9 +210,17 @@ export default function DashboardPage() {
 
   const createMutation = useMutation({
     mutationFn: async (body: { name: string; description: string; color: string }) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('projects').insert({ ...body, user_id: user!.id })
+      const userId = await requireUserId()
+      const { data: project, error } = await supabase
+        .from('projects').insert({ ...body, user_id: userId }).select().single()
       if (error) throw error
+      // 기본 컬럼을 생성 시점에 함께 만들어 lazy 생성 경로의 중복(레이스) 가능성을 없앤다.
+      if (project) {
+        const { error: colError } = await supabase.from('columns').insert(
+          DEFAULT_COLUMNS.map(c => ({ project_id: project.id, user_id: userId, ...c }))
+        )
+        if (colError) throw colError
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
@@ -479,13 +497,13 @@ export default function DashboardPage() {
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="프로젝트 이름"
+            placeholder="프로젝트 이름" maxLength={80}
             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
           />
           <input
             value={description}
             onChange={e => setDescription(e.target.value)}
-            placeholder="설명 (선택)"
+            placeholder="설명 (선택)" maxLength={200}
             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400"
           />
           <div className="flex items-center gap-2">

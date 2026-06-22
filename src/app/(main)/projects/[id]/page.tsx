@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import type { Task, TaskPriority, ProjectColumn, Project, Contact } from '@/types'
 import { useContacts } from '@/hooks/useCRM'
 import { PRIORITY_META } from '@/lib/constants'
@@ -91,9 +92,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     queryFn: async () => {
       const { data } = await supabase.from('columns').select('*').eq('project_id', id).order('order')
       if (!data || data.length === 0) {
-        const { data: { user } } = await supabase.auth.getUser()
+        const userId = await requireUserId()
         const { data: newCols } = await supabase.from('columns').insert(
-          DEFAULT_COLS.map(c => ({ project_id: id, user_id: user!.id, name: c.name, color: c.color, order: c.order }))
+          DEFAULT_COLS.map(c => ({ project_id: id, user_id: userId, name: c.name, color: c.color, order: c.order }))
         ).select()
         if (newCols) {
           for (let i = 0; i < DEFAULT_COLS.length; i++) {
@@ -223,8 +224,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const createTaskMutation = useMutation({
     mutationFn: async (body: Partial<Task>) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('tasks').insert({ ...body, user_id: user!.id })
+      const userId = await requireUserId()
+      const { error } = await supabase.from('tasks').insert({ ...body, user_id: userId })
       if (error) throw error
     },
     onSuccess: () => {
@@ -235,7 +236,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const copyTaskMutation = useMutation({
     mutationFn: async (task: Task) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
       const { data: newTask, error } = await supabase.from('tasks').insert({
         title: `(복사) ${task.title}`,
         description: task.description,
@@ -246,7 +247,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         tags: task.tags,
         status: task.status,
         project_id: task.project_id,
-        user_id: user!.id,
+        user_id: userId,
         order: activeTasks.length,
         archived: false,
       }).select().single()
@@ -256,7 +257,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         await supabase.from('checklist_items').insert(
           items.map((item, i) => ({
             task_id: newTask.id,
-            user_id: user!.id,
+            user_id: userId,
             text: item.text,
             completed: false,
             order: i,
@@ -303,9 +304,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const createColumnMutation = useMutation({
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
       const { error } = await supabase.from('columns').insert({
-        project_id: id, user_id: user!.id, name, color, order: columns.length,
+        project_id: id, user_id: userId, name, color, order: columns.length,
       })
       if (error) throw error
     },

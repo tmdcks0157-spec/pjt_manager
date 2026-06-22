@@ -109,7 +109,7 @@ export default function KanbanColumn({ column, tasks, columns, projects, current
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddTask(column.id) }
                   if (e.key === 'Escape') setAddingTo(null)
                 }}
-                placeholder="태스크 이름..." rows={2}
+                placeholder="태스크 이름..." rows={2} maxLength={200}
                 className="w-full text-sm resize-none focus:outline-none bg-transparent dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
               <div className="flex gap-1.5">
                 <button onClick={() => onAddTask(column.id)} disabled={!newTitle.trim()}

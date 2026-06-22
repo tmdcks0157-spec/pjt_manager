@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Activity } from '@/types'
 
@@ -25,8 +26,8 @@ export function useCreateActivity() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: Omit<Activity, 'id' | 'user_id' | 'created_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('activities').insert({ ...input, user_id: user!.id })
+      const userId = await requireUserId()
+      const { error } = await supabase.from('activities').insert({ ...input, user_id: userId })
       if (error) throw error
     },
     onSuccess: (_, { contact_id }) => {

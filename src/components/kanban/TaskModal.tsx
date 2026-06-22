@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import type { Task, TaskPriority, TaskType, ChecklistItem } from '@/types'
 import { useContacts } from '@/hooks/useCRM'
 import { PRIORITY_META } from '@/lib/constants'
@@ -62,9 +63,9 @@ export default function TaskModal({ task, onClose, onUpdate }: {
 
   const addItemMutation = useMutation({
     mutationFn: async (text: string) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
       const { error } = await supabase.from('checklist_items').insert({
-        task_id: task.id, user_id: user!.id, text, order: checklistItems.length,
+        task_id: task.id, user_id: userId, text, order: checklistItems.length,
       })
       if (error) throw error
     },
@@ -136,7 +137,7 @@ export default function TaskModal({ task, onClose, onUpdate }: {
             value={title}
             onChange={e => setTitle(e.target.value)}
             className="text-base font-semibold flex-1 focus:outline-none bg-transparent dark:text-gray-100 border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-500 transition-colors pb-0.5"
-            placeholder="태스크 이름"
+            placeholder="태스크 이름" maxLength={200}
           />
           <button onClick={handleSave} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors ml-2">
             <X size={16} />
@@ -193,7 +194,7 @@ export default function TaskModal({ task, onClose, onUpdate }: {
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500">설명</p>
             <textarea ref={descRef} value={description}
               onChange={e => { setDesc(e.target.value); autoResize(e.target) }}
-              placeholder="태스크에 대한 설명을 입력하세요..." rows={3}
+              placeholder="태스크에 대한 설명을 입력하세요..." rows={3} maxLength={5000}
               className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none overflow-hidden" />
           </div>
 
@@ -212,7 +213,7 @@ export default function TaskModal({ task, onClose, onUpdate }: {
                   if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) { e.preventDefault(); addTag(tagInput) }
                 }}
                 onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
-                placeholder="태그 입력 후 Enter..."
+                placeholder="태그 입력 후 Enter..." maxLength={30}
                 className="text-xs focus:outline-none text-gray-600 dark:text-gray-400 placeholder:text-gray-300 dark:placeholder:text-gray-600 min-w-[120px] flex-1" />
             </div>
           </div>
@@ -241,7 +242,7 @@ export default function TaskModal({ task, onClose, onUpdate }: {
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500">메모</p>
             <textarea ref={notesRef} value={notes}
               onChange={e => { setNotes(e.target.value); autoResize(e.target) }}
-              placeholder="개인 메모..." rows={3}
+              placeholder="개인 메모..." rows={3} maxLength={5000}
               className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none overflow-hidden bg-gray-50 dark:bg-gray-700" />
           </div>
 
@@ -295,7 +296,7 @@ export default function TaskModal({ task, onClose, onUpdate }: {
               <Square size={15} className="text-gray-200 shrink-0" />
               <input value={newItemText} onChange={e => setNewItemText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && newItemText.trim()) addItemMutation.mutate(newItemText.trim()) }}
-                placeholder="항목 추가... (Enter)"
+                placeholder="항목 추가... (Enter)" maxLength={200}
                 className="text-sm flex-1 focus:outline-none text-gray-600 dark:text-gray-400 placeholder:text-gray-300 dark:placeholder:text-gray-600 bg-transparent" />
               {newItemText.trim() && (
                 <button onClick={() => addItemMutation.mutate(newItemText.trim())}

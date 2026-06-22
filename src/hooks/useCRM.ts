@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import { useAuthStore } from '@/stores/auth-store'
 import type { Company, Contact } from '@/types'
 
@@ -57,8 +58,8 @@ export function useCreateContact() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: Omit<Contact, 'id' | 'user_id' | 'company' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('contacts').insert({ ...input, user_id: user!.id })
+      const userId = await requireUserId()
+      const { error } = await supabase.from('contacts').insert({ ...input, user_id: userId })
       if (error) throw new Error(error.message)
     },
     onSuccess: () => {
@@ -101,10 +102,10 @@ export function useCreateCompany() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: Omit<Company, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
       const { data, error } = await supabase
         .from('companies')
-        .insert({ ...input, user_id: user!.id })
+        .insert({ ...input, user_id: userId })
         .select()
         .single()
       if (error) throw new Error(error.message)

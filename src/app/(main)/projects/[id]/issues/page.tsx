@@ -460,6 +460,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                   value={formTitle}
                   onChange={e => { setFormTitle(e.target.value); setFormError('') }}
                   placeholder={formType === 'issue' ? '이슈 제목을 입력하세요' : '기록 제목을 입력하세요'}
+                  maxLength={200}
                   className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all"
                 />
               </div>
@@ -507,6 +508,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                     ? '발생 상황, 재현 방법, 영향 범위 등을 자세히 적어주세요'
                     : '메모, 회의록, 학습 내용 등을 자유롭게 기록하세요'}
                   rows={5}
+                  maxLength={5000}
                   className="w-full text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none overflow-hidden bg-white dark:bg-gray-800 transition-all"
                 />
               </div>

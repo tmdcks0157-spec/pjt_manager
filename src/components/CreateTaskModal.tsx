@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import type { Project, ProjectColumn, TaskPriority, TaskType } from '@/types'
 import { X, CalendarDays, Users, Plus, Square, CheckSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -61,13 +62,13 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
   const mutation = useMutation({
     mutationFn: async () => {
       if (!title.trim() || !firstCol) throw new Error('필수 항목 누락')
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
 
       // 1단계: 태스크 생성 (id 반환)
       const { data: task, error } = await supabase.from('tasks').insert({
         title: title.trim(),
         project_id: projectId,
-        user_id: user!.id,
+        user_id: userId,
         status: firstCol.id,
         task_type: taskType,
         priority,
@@ -85,7 +86,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
         const { error: clError } = await supabase.from('checklist_items').insert(
           checklistItems.map((text, i) => ({
             task_id: task.id,
-            user_id: user!.id,
+            user_id: userId,
             text,
             completed: false,
             order: i,
@@ -116,7 +117,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
             onChange={e => setTitle(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && title.trim()) mutation.mutate() }}
             className="text-base font-semibold flex-1 focus:outline-none bg-transparent border-b-2 border-transparent focus:border-gray-300 transition-colors pb-0.5"
-            placeholder="태스크 이름"
+            placeholder="태스크 이름" maxLength={200}
           />
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors ml-2">
             <X size={16} />
@@ -189,7 +190,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-gray-400">설명</p>
             <textarea value={description} onChange={e => setDesc(e.target.value)}
-              placeholder="태스크에 대한 설명을 입력하세요..." rows={3}
+              placeholder="태스크에 대한 설명을 입력하세요..." rows={3} maxLength={5000}
               className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none" />
           </div>
 
@@ -212,7 +213,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
                   if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) { e.preventDefault(); addTag(tagInput) }
                 }}
                 onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
-                placeholder={tags.length === 0 ? '태그 입력 후 Enter...' : ''}
+                placeholder={tags.length === 0 ? '태그 입력 후 Enter...' : ''} maxLength={30}
                 className="text-xs focus:outline-none text-gray-600 placeholder:text-gray-300 min-w-[120px] flex-1 bg-transparent"
               />
             </div>
@@ -247,7 +248,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
                 value={newItemText}
                 onChange={e => setNewItemText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem() } }}
-                placeholder="항목 추가..."
+                placeholder="항목 추가..." maxLength={200}
                 className="flex-1 text-sm text-gray-700 focus:outline-none border-b border-gray-200 focus:border-gray-400 pb-0.5 transition-colors bg-transparent"
               />
               <button
@@ -264,7 +265,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-gray-400">메모</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="개인 메모..." rows={2}
+              placeholder="개인 메모..." rows={2} maxLength={5000}
               className="w-full text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none bg-gray-50" />
           </div>
 

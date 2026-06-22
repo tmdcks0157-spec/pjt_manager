@@ -74,7 +74,7 @@ export default function CompanyForm({ company, onClose }: Props) {
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="삼성전자"
+              placeholder="삼성전자" maxLength={100}
               required
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             />
@@ -86,7 +86,7 @@ export default function CompanyForm({ company, onClose }: Props) {
               <input
                 value={industry}
                 onChange={e => setIndustry(e.target.value)}
-                placeholder="IT / 전자"
+                placeholder="IT / 전자" maxLength={50}
                 className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               />
             </div>
@@ -96,7 +96,7 @@ export default function CompanyForm({ company, onClose }: Props) {
                 type="tel"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                placeholder="02-0000-0000"
+                placeholder="02-0000-0000" maxLength={30}
                 className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               />
             </div>
@@ -108,7 +108,7 @@ export default function CompanyForm({ company, onClose }: Props) {
               type="url"
               value={website}
               onChange={e => setWebsite(e.target.value)}
-              placeholder="https://www.example.com"
+              placeholder="https://www.example.com" maxLength={200}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             />
           </div>
@@ -130,7 +130,7 @@ export default function CompanyForm({ company, onClose }: Props) {
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
-                placeholder="태그 입력 후 Enter"
+                placeholder="태그 입력 후 Enter" maxLength={30}
                 className="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               />
               <button type="button" onClick={addTag}
@@ -146,7 +146,7 @@ export default function CompanyForm({ company, onClose }: Props) {
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
-              placeholder="이 회사에 대한 메모..."
+              placeholder="이 회사에 대한 메모..." maxLength={2000}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
             />
           </div>

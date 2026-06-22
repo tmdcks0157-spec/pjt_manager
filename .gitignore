@@ -42,3 +42,8 @@ next-env.d.ts
 
 # bkit internal state
 .bkit/
+
+# local QA / Playwright 스크립트 (자격증명 포함 가능 → 커밋 금지)
+/dummy.cjs
+/verify.cjs
+*.local.cjs

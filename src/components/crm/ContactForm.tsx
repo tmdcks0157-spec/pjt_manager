@@ -90,7 +90,7 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="홍길동"
+              placeholder="홍길동" maxLength={50}
               required
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             />
@@ -117,7 +117,7 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
             <input
               value={role}
               onChange={e => setRole(e.target.value)}
-              placeholder="개발팀장"
+              placeholder="개발팀장" maxLength={50}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             />
           </div>
@@ -129,7 +129,7 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="hong@example.com"
+              placeholder="hong@example.com" maxLength={100}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
             />
           </div>
@@ -155,7 +155,7 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
                       type="tel"
                       value={phone}
                       onChange={e => updatePhone(i, e.target.value)}
-                      placeholder="010-0000-0000"
+                      placeholder="010-0000-0000" maxLength={30}
                       className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
                     />
                   </div>
@@ -191,7 +191,7 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
-                placeholder="태그 입력 후 Enter"
+                placeholder="태그 입력 후 Enter" maxLength={30}
                 className="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               />
               <button type="button" onClick={addTag}
@@ -208,7 +208,7 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={3}
-              placeholder="이 연락처에 대한 메모..."
+              placeholder="이 연락처에 대한 메모..." maxLength={2000}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none"
             />
           </div>

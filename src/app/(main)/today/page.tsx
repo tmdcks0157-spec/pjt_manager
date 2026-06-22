@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { requireUserId } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Task, Post } from '@/types'
@@ -219,12 +220,12 @@ export default function TodayPage() {
   const createPostMutation = useMutation({
     mutationFn: async () => {
       if (!issueTitle.trim() || !issueProjectId) return
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await requireUserId()
       const { error } = await supabase.from('posts').insert({
         title: issueTitle.trim(),
         body: issueBody.trim() || null,
         project_id: issueProjectId,
-        user_id: user!.id,
+        user_id: userId,
         type: issuePostType,
         status: 'open',
         priority: issuePostType === 'note' ? 'normal' : issuePriority,
