@@ -4,13 +4,33 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
-import { CheckCircle2 } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Users, BarChart2 } from 'lucide-react'
 
 const FEATURES = [
-  '칸반 보드로 프로젝트를 시각적으로 관리',
-  '캘린더에서 마감일을 한눈에 확인',
-  'CRM으로 연락처·회사·활동 기록',
-  '주간 리포트로 생산성 패턴 파악',
+  {
+    icon: LayoutDashboard,
+    color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+    title: '칸반 보드',
+    desc: '프로젝트를 컬럼과 카드로 시각화해 진행 상황을 한눈에 파악',
+  },
+  {
+    icon: CalendarDays,
+    color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
+    title: '캘린더',
+    desc: '마감일과 일정을 월별·주별로 확인하고 충돌을 사전에 방지',
+  },
+  {
+    icon: Users,
+    color: 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400',
+    title: 'CRM',
+    desc: '연락처·회사·활동 이력을 체계적으로 기록하고 관계를 관리',
+  },
+  {
+    icon: BarChart2,
+    color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400',
+    title: '주간 리포트',
+    desc: '완료된 태스크와 생산성 패턴을 자동으로 집계해 인사이트 제공',
+  },
 ]
 
 export default function RegisterPage() {
@@ -35,21 +55,45 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
       {/* 왼쪽: 앱 소개 */}
-      <div className="hidden lg:flex flex-col justify-center px-16 flex-1 bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800">
+      <div className="hidden lg:flex flex-col justify-center px-16 flex-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 border-r border-gray-100 dark:border-gray-800">
         <div className="max-w-sm">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">My PM</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-10 text-base leading-relaxed">
-            혼자 쓰기 좋은 프로젝트 관리 도구.<br />
-            할 일부터 연락처까지 한 곳에서.
+          {/* 로고 */}
+          <div className="flex items-center gap-2.5 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-gray-900 dark:bg-gray-100 flex items-center justify-center">
+              <LayoutDashboard size={18} className="text-white dark:text-gray-900" />
+            </div>
+            <span className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">My PM</span>
+          </div>
+
+          {/* 헤드라인 */}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-snug mb-2">
+            일 잘하는 사람들의<br />개인 프로젝트 관리 도구
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
+            할 일, 일정, 연락처, 리포트까지 — 흩어진 업무를 한 곳에서 관리하세요.
           </p>
-          <ul className="space-y-4">
-            {FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
-                <CheckCircle2 size={17} className="text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" />
-                {f}
+
+          {/* 기능 목록 */}
+          <ul className="space-y-5">
+            {FEATURES.map(({ icon: Icon, color, title, desc }) => (
+              <li key={title} className="flex items-start gap-3.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${color}`}>
+                  <Icon size={15} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-0.5">{title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p>
+                </div>
               </li>
             ))}
           </ul>
+
+          {/* 하단 태그라인 */}
+          <div className="mt-10 pt-8 border-t border-gray-100 dark:border-gray-800">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              개인 사용을 위해 설계된 올인원 생산성 도구
+            </p>
+          </div>
         </div>
       </div>
 
