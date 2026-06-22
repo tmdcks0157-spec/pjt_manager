@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 import { useQueryClient } from '@tanstack/react-query'
-import { LayoutDashboard, CalendarDays, Users, BarChart2 } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Users, BarChart2, ArrowRight } from 'lucide-react'
 
 const FEATURES = [
   {
@@ -90,11 +90,18 @@ export default function LoginPage() {
             ))}
           </ul>
 
-          {/* 하단 태그라인 */}
+          {/* 소개 페이지 유도 버튼 */}
           <div className="mt-10 pt-8 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              개인 사용을 위해 설계된 올인원 생산성 도구
-            </p>
+            <a
+              href="/landing.html"
+              className="flex items-center justify-between w-full px-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-all group"
+            >
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">기능 자세히 살펴보기</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">칸반 · 캘린더 · CRM · 리포트 미리보기</p>
+              </div>
+              <ArrowRight size={16} className="text-gray-400 dark:text-gray-500 group-hover:translate-x-1 transition-transform shrink-0" />
+            </a>
           </div>
         </div>
       </div>
@@ -158,15 +165,6 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          <a
-            href="/landing.html"
-            className="flex items-center justify-center gap-1.5 w-full py-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
-            </svg>
-            My PM 소개 보기
-          </a>
         </div>
       </div>
     </main>
