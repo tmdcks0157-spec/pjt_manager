@@ -72,7 +72,7 @@ export default function LoginPage() {
             일 잘하는 사람들의<br />개인 프로젝트 관리 도구
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
-            할 일, 일정, 연락처, 리포트까지 — 흩어진 업무를 한 곳에서 관리하세요.
+            할 일, 일정, 연락처, 리포트까지 —<br />흩어진 업무를 한 곳에서 관리하세요.
           </p>
 
           {/* 기능 목록 */}
