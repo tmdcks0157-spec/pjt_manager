@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -12,6 +12,8 @@ import {
 import { cn } from '@/lib/utils'
 import { PRIORITY_META } from '@/lib/constants'
 import { useContacts } from '@/hooks/useCRM'
+import MarkdownEditor from '@/components/ui/MarkdownEditor'
+import MarkdownViewer from '@/components/ui/MarkdownViewer'
 
 type PostType = 'issue' | 'note'
 type IssueStatus = 'open' | 'closed'
@@ -83,13 +85,6 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const [formRecordedAt, setFormRecordedAt] = useState(nowLocalISO())
   const [formError, setFormError]         = useState('')
   const titleRef   = useRef<HTMLInputElement>(null)
-  const bodyRef    = useRef<HTMLTextAreaElement>(null)
-
-  const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-  }, [])
 
   const [setupNeeded, setSetupNeeded] = useState(false)
 
@@ -127,12 +122,9 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
 
   useEffect(() => {
     if (showModal) {
-      setTimeout(() => {
-        titleRef.current?.focus()
-        autoResize(bodyRef.current)
-      }, 50)
+      setTimeout(() => { titleRef.current?.focus() }, 50)
     }
-  }, [showModal, autoResize])
+  }, [showModal])
 
   useEffect(() => {
     if (!showModal) return
@@ -391,9 +383,9 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                     </div>
 
                     {post.body && (
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 rounded-xl px-3 py-2.5">
-                        {post.body}
-                      </p>
+                      <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5">
+                        <MarkdownViewer content={post.body} />
+                      </div>
                     )}
                   </div>
 
@@ -500,16 +492,13 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
               {/* 내용 */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">내용</label>
-                <textarea
-                  ref={bodyRef}
-                  value={formBody}
-                  onChange={e => { setFormBody(e.target.value); autoResize(e.target) }}
+                <MarkdownEditor
+                  key={editPost?.id ?? 'new'}
+                  defaultValue={formBody}
+                  onChange={setFormBody}
                   placeholder={formType === 'issue'
                     ? '발생 상황, 재현 방법, 영향 범위 등을 자세히 적어주세요'
                     : '메모, 회의록, 학습 내용 등을 자유롭게 기록하세요'}
-                  rows={5}
-                  maxLength={5000}
-                  className="w-full text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 resize-none overflow-hidden bg-white dark:bg-gray-800 transition-all"
                 />
               </div>
 
