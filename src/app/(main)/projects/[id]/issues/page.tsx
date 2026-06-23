@@ -415,7 +415,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={e => { if (e.target === e.currentTarget) closeModal() }}
         >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
             {/* 헤더 */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="font-semibold text-gray-900 dark:text-gray-100">
