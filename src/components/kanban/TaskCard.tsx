@@ -163,10 +163,12 @@ export default function TaskCard({ task, columns, projects, currentProjectId, on
                 {completedCount}/{checklist.length}
               </span>
             )}
-            {task.contact_id && contactsMap[task.contact_id] && (
+            {(task.contact_id && contactsMap[task.contact_id] || task.assignee_name) && (
               <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 font-medium">
                 <Users size={9} />
-                {contactsMap[task.contact_id].name}
+                {task.contact_id && contactsMap[task.contact_id]
+                  ? contactsMap[task.contact_id].name
+                  : task.assignee_name}
               </span>
             )}
             {hasExpandable && (

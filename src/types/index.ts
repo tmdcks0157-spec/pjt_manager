@@ -39,6 +39,7 @@ export interface Task {
   archived: boolean
   deleted_at: string | null
   contact_id?: string | null
+  assignee_name?: string | null
   checklist_items?: ChecklistItem[]
   created_at: string
   updated_at: string

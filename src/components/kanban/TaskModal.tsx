@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { requireUserId } from '@/lib/auth'
 import type { Task, TaskPriority, TaskType, ChecklistItem } from '@/types'
 import { useContacts } from '@/hooks/useCRM'
+import ContactCombobox from '@/components/ui/ContactCombobox'
 import { PRIORITY_META } from '@/lib/constants'
 import { tagColor } from '@/lib/taskUtils'
 import { X, CalendarDays, Users, CheckSquare, Square } from 'lucide-react'
@@ -23,7 +24,8 @@ export default function TaskModal({ task, onClose, onUpdate }: {
   const [dueDate, setDueDate]   = useState(task.due_date ? task.due_date.slice(0, 10) : '')
   const [tags, setTags]             = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput]     = useState('')
-  const [contactId, setContactId]   = useState<string>(task.contact_id ?? '')
+  const [contactId, setContactId]     = useState<string>(task.contact_id ?? '')
+  const [assigneeName, setAssigneeName] = useState<string>(task.assignee_name ?? '')
   const [newItemText, setNewItemText] = useState('')
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemText, setEditingItemText] = useState('')
@@ -123,7 +125,8 @@ export default function TaskModal({ task, onClose, onUpdate }: {
       description, notes, priority, task_type: taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,
       tags,
-      contact_id:  contactId || null,
+      contact_id:    contactId || null,
+      assignee_name: contactId ? null : (assigneeName.trim() || null),
     })
     onClose()
   }
@@ -218,24 +221,16 @@ export default function TaskModal({ task, onClose, onUpdate }: {
             </div>
           </div>
 
-          {/* 연락처 연결 */}
-          {contacts.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">연락처</p>
-              <select
-                value={contactId}
-                onChange={e => setContactId(e.target.value)}
-                className="w-full text-sm text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600"
-              >
-                <option value="">연결 안 함</option>
-                {contacts.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}{c.company ? ` · ${c.company.name}` : ''}{c.role ? ` (${c.role})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* 담당자 */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500">담당자</p>
+            <ContactCombobox
+              contacts={contacts}
+              contactId={contactId}
+              assigneeName={assigneeName}
+              onChange={(cid, name) => { setContactId(cid); setAssigneeName(name) }}
+            />
+          </div>
 
           {/* 메모 */}
           <div className="space-y-1.5">
