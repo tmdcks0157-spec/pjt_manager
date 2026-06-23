@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Users, Building2, Plus, Search, Phone, Mail, ChevronRight, ListTodo, Pencil, Globe, X } from 'lucide-react'
+import { Users, Building2, Plus, Search, Phone, Mail, ChevronRight, ListTodo, Pencil, Globe, X, LayoutGrid, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { maskEmail, maskPhone } from '@/lib/mask'
 import { supabase } from '@/lib/supabase'
@@ -101,6 +101,18 @@ export default function CRMPage() {
   const [showCompanyForm, setShowCompanyForm] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [editingCompany, setEditingCompany] = useState<Company | null>(null)
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(() =>
+    (typeof window !== 'undefined'
+      ? (localStorage.getItem('crm-view-mode') as 'card' | 'list')
+      : null) ?? 'card'
+  )
+  const [sortBy, setSortBy] = useState<'name' | 'latest' | 'company'>('name')
+  const [companyForNewContact, setCompanyForNewContact] = useState('')
+
+  function toggleViewMode(mode: 'card' | 'list') {
+    setViewMode(mode)
+    localStorage.setItem('crm-view-mode', mode)
+  }
 
   const user = useAuthStore((s) => s.user)
   const { data: contacts = [], isLoading: loadingContacts } = useContacts()
@@ -135,6 +147,20 @@ export default function CRMPage() {
       c.role?.toLowerCase().includes(q)
     )
   }, [contacts, search])
+
+  const sortedContacts = useMemo(() => {
+    const arr = [...filteredContacts]
+    if (sortBy === 'name') return arr.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    if (sortBy === 'latest') return arr.sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    if (sortBy === 'company') return arr.sort((a, b) => {
+      const ca = a.company?.name ?? '￿'
+      const cb = b.company?.name ?? '￿'
+      return ca.localeCompare(cb, 'ko')
+    })
+    return arr
+  }, [filteredContacts, sortBy])
 
   const filteredCompanies = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -209,6 +235,43 @@ export default function CRMPage() {
             className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
           />
         </div>
+        {tab === 'contacts' && (
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as typeof sortBy)}
+            className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
+          >
+            <option value="name">이름순</option>
+            <option value="latest">최신순</option>
+            <option value="company">회사순</option>
+          </select>
+        )}
+        {tab === 'contacts' && (
+          <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <button
+              onClick={() => toggleViewMode('card')}
+              className={cn('p-2 transition-colors',
+                viewMode === 'card'
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                  : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              )}
+              title="카드 뷰"
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              onClick={() => toggleViewMode('list')}
+              className={cn('p-2 transition-colors',
+                viewMode === 'list'
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                  : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              )}
+              title="리스트 뷰"
+            >
+              <List size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 목록 */}
@@ -225,9 +288,51 @@ export default function CRMPage() {
               </button>
             )}
           </div>
-        ) : (
+        ) : viewMode === 'card' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredContacts.map(c => <ContactCard key={c.id} contact={c} taskCount={taskCountMap[c.id] ?? 0} />)}
+            {sortedContacts.map(c => <ContactCard key={c.id} contact={c} taskCount={taskCountMap[c.id] ?? 0} />)}
+          </div>
+        ) : (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+            {sortedContacts.map((c, i) => (
+              <Link
+                key={c.id}
+                href={`/crm/contacts/${c.id}`}
+                className={cn(
+                  'flex items-center gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
+                  i !== 0 && 'border-t border-gray-100 dark:border-gray-800'
+                )}
+              >
+                <div className="w-40 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{c.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {[c.company?.name, c.role].filter(Boolean).join(' · ') || '개인'}
+                  </p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  {c.email && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate block">
+                      {maskEmail(c.email)}
+                    </span>
+                  )}
+                </div>
+                <div className="w-32 min-w-0 shrink-0">
+                  {c.phones?.[0] && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {maskPhone(c.phones[0])}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1 flex-wrap w-28 shrink-0">
+                  {c.tags.slice(0, 2).map(tag => (
+                    <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <ChevronRight size={13} className="text-gray-300 shrink-0" />
+              </Link>
+            ))}
           </div>
         )
       )}
@@ -257,7 +362,8 @@ export default function CRMPage() {
       {showContactForm && (
         <ContactForm
           companies={companies}
-          onClose={() => setShowContactForm(false)}
+          defaultCompanyId={companyForNewContact}
+          onClose={() => { setShowContactForm(false); setCompanyForNewContact('') }}
         />
       )}
       {(showCompanyForm || editingCompany) && (
@@ -322,9 +428,21 @@ export default function CRMPage() {
 
             {/* 소속 연락처 */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                소속 연락처 ({contacts.filter(c => c.company_id === selectedCompany.id).length}명)
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  소속 연락처 ({contacts.filter(c => c.company_id === selectedCompany.id).length}명)
+                </h3>
+                <button
+                  onClick={() => {
+                    setCompanyForNewContact(selectedCompany.id)
+                    setSelectedCompany(null)
+                    setShowContactForm(true)
+                  }}
+                  className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 transition-colors"
+                >
+                  <Plus size={12} /> 추가
+                </button>
+              </div>
               {contacts.filter(c => c.company_id === selectedCompany.id).length === 0 ? (
                 <p className="text-xs text-gray-400 dark:text-gray-500">소속 연락처가 없습니다.</p>
               ) : (

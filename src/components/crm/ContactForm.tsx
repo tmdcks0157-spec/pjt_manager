@@ -9,17 +9,18 @@ import type { Company, Contact } from '@/types'
 interface Props {
   companies: Company[]
   contact?: Contact
+  defaultCompanyId?: string
   onClose: () => void
 }
 
-export default function ContactForm({ companies, contact, onClose }: Props) {
+export default function ContactForm({ companies, contact, defaultCompanyId, onClose }: Props) {
   const [name, setName]           = useState(contact?.name ?? '')
   const [email, setEmail]         = useState(contact?.email ?? '')
   const [phones, setPhones]       = useState<string[]>(
     contact?.phones?.length ? contact.phones : ['']
   )
   const [role, setRole]           = useState(contact?.role ?? '')
-  const [companyId, setCompanyId] = useState(contact?.company_id ?? '')
+  const [companyId, setCompanyId] = useState(contact?.company_id ?? defaultCompanyId ?? '')
   const [notes, setNotes]         = useState(contact?.notes ?? '')
   const [tags, setTags]           = useState<string[]>(contact?.tags ?? [])
   const [tagInput, setTagInput]   = useState('')
