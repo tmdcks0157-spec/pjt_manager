@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Users, Building2, Plus, Search, Phone, Mail, ChevronRight, ListTodo, Pencil, Globe, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { maskEmail, maskPhone } from '@/lib/mask'
 import { supabase } from '@/lib/supabase'
 import { useContacts, useCompanies } from '@/hooks/useCRM'
 import { useAuthStore } from '@/stores/auth-store'
@@ -50,13 +51,13 @@ function ContactCard({ contact, taskCount = 0 }: { contact: Contact; taskCount?:
         {contact.email && (
           <a href={`mailto:${contact.email}`} onClick={e => e.stopPropagation()}
             className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate">
-            <Mail size={11} className="shrink-0" /> {contact.email}
+            <Mail size={11} className="shrink-0" /> {maskEmail(contact.email)}
           </a>
         )}
         {contact.phones?.map((phone, i) => (
           <a key={i} href={`tel:${phone}`} onClick={e => e.stopPropagation()}
             className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-            <Phone size={11} className="shrink-0" /> {phone}
+            <Phone size={11} className="shrink-0" /> {maskPhone(phone)}
           </a>
         ))}
       </div>

@@ -46,6 +46,15 @@ export default function ContactForm({ companies, contact, onClose }: Props) {
     if (!name.trim()) return
     setSaving(true)
     setErrorMsg('')
+    const emailTrimmed = email.trim()
+    if (emailTrimmed) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(emailTrimmed)) {
+        setErrorMsg('올바른 이메일 형식을 입력해주세요')
+        setSaving(false)
+        return
+      }
+    }
     try {
       const payload = {
         name: name.trim(),
