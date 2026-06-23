@@ -59,6 +59,7 @@ body {
 .md-editor-content td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; font-size: 0.8rem; vertical-align: top; min-width: 60px; }
 .md-editor-content td.selectedCell, .md-editor-content th.selectedCell { background: #dbeafe; }
 .md-editor-content p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; float: left; height: 0; }
+.dark .md-editor-content { color: #e5e7eb; }
 .dark .md-editor-content blockquote { border-left-color: #4b5563; color: #9ca3af; }
 .dark .md-editor-content code:not(pre code) { background: #374151; color: #e5e7eb; }
 .dark .md-editor-content th { background: #374151; border-color: #4b5563; color: #e5e7eb; }

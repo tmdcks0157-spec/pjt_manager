@@ -76,6 +76,19 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const [filter, setFilter] = useState<FilterType>('all')
   const [showModal, setShowModal] = useState(false)
   const [editPost, setEditPost] = useState<Post | null>(null)
+  const [modalSize, setModalSize] = useState<'md' | 'lg' | 'xl'>(() =>
+    (typeof window !== 'undefined'
+      ? (localStorage.getItem('issues-modal-size') as 'md' | 'lg' | 'xl')
+      : null) ?? 'lg'
+  )
+
+  function cycleModalSize() {
+    const next = modalSize === 'md' ? 'lg' : modalSize === 'lg' ? 'xl' : 'md'
+    setModalSize(next)
+    localStorage.setItem('issues-modal-size', next)
+  }
+
+  const modalWidthClass = modalSize === 'md' ? 'max-w-2xl' : modalSize === 'lg' ? 'max-w-3xl' : 'max-w-5xl'
 
   const [formType, setFormType]           = useState<PostType>('issue')
   const [formTitle, setFormTitle]         = useState('')
@@ -415,15 +428,24 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={e => { if (e.target === e.currentTarget) closeModal() }}
         >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+          <div className={cn('bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh] transition-all duration-200', modalWidthClass)}>
             {/* 헤더 */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="font-semibold text-gray-900 dark:text-gray-100">
                 {editPost ? '이슈 / 기록 수정' : '이슈 / 기록 추가'}
               </h2>
-              <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={cycleModalSize}
+                  title={`모달 크기 전환 (현재: ${modalSize === 'md' ? '소' : modalSize === 'lg' ? '중' : '대'})`}
+                  className="px-2 py-1 text-[10px] font-medium text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  {modalSize === 'md' ? '소' : modalSize === 'lg' ? '중' : '대'}
+                </button>
+                <button onClick={closeModal} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             {/* 본문 */}
