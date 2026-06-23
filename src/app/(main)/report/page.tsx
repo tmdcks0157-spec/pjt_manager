@@ -139,6 +139,22 @@ export default function WeeklyReportPage() {
     },
   })
 
+  const { data: monthCreatedTasks = [] } = useQuery<{ id: string; created_at: string }[]>({
+    queryKey: ['monthly-created-tasks', monthStart.toISOString()],
+    enabled: chartView === 'monthly',
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, created_at')
+        .is('deleted_at', null)
+        .eq('archived', false)
+        .gte('created_at', monthStart.toISOString())
+        .lte('created_at', monthEnd.toISOString())
+      if (error) throw error
+      return (data ?? []) as { id: string; created_at: string }[]
+    },
+  })
+
   const projMap = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p])), [projects])
   const doneColumnIds = useMemo(() => new Set(columns.filter(c => c.name === '완료').map(c => c.id)), [columns])
 
@@ -183,6 +199,7 @@ export default function WeeklyReportPage() {
     days.map((d, i) => ({
       label: DAY_LABELS[i],
       completed: tasksByDay[toDateKey(d.toISOString())]?.completed.length ?? 0,
+      created: tasksByDay[toDateKey(d.toISOString())]?.created.length ?? 0,
     })),
     [days, tasksByDay]
   )
@@ -195,14 +212,19 @@ export default function WeeklyReportPage() {
   const monthlyChartData = useMemo(() => {
     const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate()
     const weekCount = Math.ceil(daysInMonth / 7)
-    const weeks = Array.from({ length: weekCount }, (_, i) => ({ label: `${i + 1}주`, completed: 0 }))
+    const weeks = Array.from({ length: weekCount }, (_, i) => ({ label: `${i + 1}주`, completed: 0, created: 0 }))
     for (const t of monthCompletedTasks) {
       const day = new Date(t.updated_at).getDate()
       const weekIdx = Math.min(Math.ceil(day / 7) - 1, weekCount - 1)
       weeks[weekIdx].completed++
     }
+    for (const t of monthCreatedTasks) {
+      const day = new Date(t.created_at).getDate()
+      const weekIdx = Math.min(Math.ceil(day / 7) - 1, weekCount - 1)
+      weeks[weekIdx].created++
+    }
     return weeks
-  }, [monthCompletedTasks, monthStart])
+  }, [monthCompletedTasks, monthCreatedTasks, monthStart])
 
   const currentWeekIndex = Math.min(Math.ceil(new Date().getDate() / 7) - 1, 4)
 
@@ -345,10 +367,16 @@ export default function WeeklyReportPage() {
             </div>
           </div>
 
-          {/* 완료 추이 차트 */}
+          {/* 생성/완료 추이 차트 */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-8">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">완료 추이</p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">생성 / 완료 추이</p>
+                <div className="flex items-center gap-2 text-[10px] text-gray-400 dark:text-gray-500">
+                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-300 dark:bg-blue-400"></span>생성</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-green-300 dark:bg-green-400"></span>완료</span>
+                </div>
+              </div>
               <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
                 <button
                   onClick={() => setChartView('weekly')}
