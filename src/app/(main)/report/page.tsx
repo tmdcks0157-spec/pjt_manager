@@ -11,6 +11,7 @@ import { PRIORITY_META } from '@/lib/constants'
 import { CheckCircle2, Plus, AlertCircle, TrendingUp, Calendar, FolderKanban, Clock, MessageSquare, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import CompletionBarChart from '@/components/report/CompletionBarChart'
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
@@ -21,6 +22,13 @@ function getWeekRange(offset = 0) {
   const mon = new Date(now); mon.setDate(now.getDate() + diffToMon + offset * 7); mon.setHours(0, 0, 0, 0)
   const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23, 59, 59, 999)
   return { start: mon, end: sun }
+}
+
+function getMonthRange() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+  return { start, end }
 }
 
 function fmt(date: Date) {
@@ -34,8 +42,10 @@ function toDateKey(dateStr: string) {
 export default function WeeklyReportPage() {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
+  const [chartView, setChartView] = useState<'weekly' | 'monthly'>('weekly')
   const { start, end } = useMemo(() => getWeekRange(weekOffset), [weekOffset])
   const todayKey = new Date().toISOString().split('T')[0]
+  const { start: monthStart, end: monthEnd } = useMemo(() => getMonthRange(), [])
 
   const { data: projects = [] } = useProjects()
   const { data: columns = [] } = useAllColumns()
@@ -109,6 +119,26 @@ export default function WeeklyReportPage() {
     },
   })
 
+  const { data: monthCompletedTasks = [] } = useQuery<{ id: string; updated_at: string }[]>({
+    queryKey: ['monthly-completed-tasks', monthStart.toISOString()],
+    enabled: chartView === 'monthly',
+    queryFn: async () => {
+      const doneColRes = await supabase.from('columns').select('id').eq('name', '완료')
+      const doneIds = (doneColRes.data ?? []).map(c => c.id)
+      if (doneIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, updated_at')
+        .is('deleted_at', null)
+        .eq('archived', false)
+        .in('status', doneIds)
+        .gte('updated_at', monthStart.toISOString())
+        .lte('updated_at', monthEnd.toISOString())
+      if (error) throw error
+      return (data ?? []) as { id: string; updated_at: string }[]
+    },
+  })
+
   const projMap = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p])), [projects])
   const doneColumnIds = useMemo(() => new Set(columns.filter(c => c.name === '완료').map(c => c.id)), [columns])
 
@@ -148,6 +178,33 @@ export default function WeeklyReportPage() {
     const ps = byProject[p.id]
     return ps && (ps.created.length + ps.completed.length + ps.overdue.length + ps.posts.length) > 0
   })
+
+  const weeklyChartData = useMemo(() =>
+    days.map((d, i) => ({
+      label: DAY_LABELS[i],
+      completed: tasksByDay[toDateKey(d.toISOString())]?.completed.length ?? 0,
+    })),
+    [days, tasksByDay]
+  )
+
+  const todayDayIndex = useMemo(() =>
+    days.findIndex(d => toDateKey(d.toISOString()) === todayKey),
+    [days, todayKey]
+  )
+
+  const monthlyChartData = useMemo(() => {
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate()
+    const weekCount = Math.ceil(daysInMonth / 7)
+    const weeks = Array.from({ length: weekCount }, (_, i) => ({ label: `${i + 1}주`, completed: 0 }))
+    for (const t of monthCompletedTasks) {
+      const day = new Date(t.updated_at).getDate()
+      const weekIdx = Math.min(Math.ceil(day / 7) - 1, weekCount - 1)
+      weeks[weekIdx].completed++
+    }
+    return weeks
+  }, [monthCompletedTasks, monthStart])
+
+  const currentWeekIndex = Math.min(Math.ceil(new Date().getDate() / 7) - 1, 4)
 
   function DayTaskItem({ task, type }: { task: Task; type: 'completed' | 'created' }) {
     const proj = projMap[task.project_id]
@@ -286,6 +343,35 @@ export default function WeeklyReportPage() {
               <p className={cn('text-2xl font-bold', overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'dark:text-gray-100')}>{overdueTasks.length}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기한 초과</p>
             </div>
+          </div>
+
+          {/* 완료 추이 차트 */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">완료 추이</p>
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                <button
+                  onClick={() => setChartView('weekly')}
+                  className={cn('px-2.5 py-1 text-xs rounded-md transition-colors font-medium',
+                    chartView === 'weekly'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  )}
+                >주간</button>
+                <button
+                  onClick={() => setChartView('monthly')}
+                  className={cn('px-2.5 py-1 text-xs rounded-md transition-colors font-medium',
+                    chartView === 'monthly'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  )}
+                >월간</button>
+              </div>
+            </div>
+            <CompletionBarChart
+              data={chartView === 'weekly' ? weeklyChartData : monthlyChartData}
+              highlightIndex={chartView === 'weekly' ? todayDayIndex : currentWeekIndex}
+            />
           </div>
 
           {/* 요일별 그리드 */}
