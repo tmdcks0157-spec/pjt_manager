@@ -343,85 +343,31 @@ export default function WeeklyReportPage() {
         </div>
       ) : (
         <>
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-2">
-                <Plus size={15} className="text-blue-500" />
+          {/* 요약 한 줄 */}
+          {(() => {
+            const openIssues = weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length
+            const stats6 = [
+              { icon: <Plus size={13} className="text-blue-500" />,    value: weekTasks.length,                                    label: '태스크 생성', color: 'text-blue-600 dark:text-blue-400',   alert: false },
+              { icon: <CheckCircle2 size={13} className="text-green-500" />, value: completedTasks.length,                          label: '완료',        color: 'text-green-600 dark:text-green-400', alert: false },
+              { icon: <AlertCircle size={13} className={overdueTasks.length > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'} />, value: overdueTasks.length, label: '기한 초과', color: overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300', alert: overdueTasks.length > 0 },
+              { icon: <MessageSquare size={13} className="text-blue-400" />, value: weeklyPosts.filter(p => p.type === 'issue').length, label: '이슈 등록', color: 'text-blue-600 dark:text-blue-400',   alert: false },
+              { icon: <AlertCircle size={13} className={openIssues > 0 ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'} />, value: openIssues,  label: '미해결',    color: openIssues > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300', alert: openIssues > 0 },
+              { icon: <FileText size={13} className="text-purple-500" />,    value: weeklyPosts.filter(p => p.type === 'note').length,  label: '기록 작성', color: 'text-purple-600 dark:text-purple-400', alert: false },
+            ]
+            return (
+              <div className="flex items-stretch bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl mb-6 divide-x divide-gray-100 dark:divide-gray-700 overflow-hidden">
+                {stats6.map((s, i) => (
+                  <div key={i} className={cn('flex-1 flex flex-col items-center justify-center py-3 gap-0.5', s.alert && 'bg-orange-50 dark:bg-orange-900/10')}>
+                    <div className="flex items-center gap-1">
+                      {s.icon}
+                      <span className={cn('text-base font-bold leading-none', s.color)}>{s.value}</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{s.label}</span>
+                  </div>
+                ))}
               </div>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{weekTasks.length}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 생성</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
-              <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-2">
-                <CheckCircle2 size={15} className="text-green-500" />
-              </div>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{completedTasks.length}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이번 주 완료</p>
-            </div>
-            <div className={cn('border rounded-xl p-4 text-center',
-              overdueTasks.length > 0
-                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-            )}>
-              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2',
-                overdueTasks.length > 0 ? 'bg-red-100 dark:bg-red-900/40' : 'bg-gray-50 dark:bg-gray-700'
-              )}>
-                <AlertCircle size={15} className={overdueTasks.length > 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'} />
-              </div>
-              <p className={cn('text-2xl font-bold', overdueTasks.length > 0 ? 'text-red-600 dark:text-red-400' : 'dark:text-gray-100')}>{overdueTasks.length}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기한 초과</p>
-            </div>
-          </div>
-
-          {/* 이슈/기록 요약 카드 */}
-          {weeklyPosts.length > 0 && (
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-2">
-                  <MessageSquare size={15} className="text-blue-500" />
-                </div>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {weeklyPosts.filter(p => p.type === 'issue').length}
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이슈 등록</p>
-              </div>
-              <div className={cn('border rounded-xl p-4 text-center',
-                weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
-                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
-                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-              )}>
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2',
-                  weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
-                    ? 'bg-orange-100 dark:bg-orange-900/40'
-                    : 'bg-gray-50 dark:bg-gray-700'
-                )}>
-                  <AlertCircle size={15} className={
-                    weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
-                      ? 'text-orange-500'
-                      : 'text-gray-400 dark:text-gray-500'
-                  } />
-                </div>
-                <p className={cn('text-2xl font-bold',
-                  weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
-                    ? 'text-orange-600 dark:text-orange-400'
-                    : 'dark:text-gray-100'
-                )}>
-                  {weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length}
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">미해결 이슈</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-2">
-                  <FileText size={15} className="text-purple-500" />
-                </div>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {weeklyPosts.filter(p => p.type === 'note').length}
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기록 작성</p>
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* 생성/완료 추이 차트 */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-8">
