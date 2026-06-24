@@ -9,12 +9,13 @@ import { useContacts } from '@/hooks/useCRM'
 import ContactCombobox from '@/components/ui/ContactCombobox'
 import { PRIORITY_META } from '@/lib/constants'
 import { tagColor } from '@/lib/taskUtils'
-import { X, CalendarDays, Users, CheckSquare, Square } from 'lucide-react'
+import { X, CalendarDays, Users, CheckSquare, Square, ArchiveRestore, Archive } from 'lucide-react'
 
-export default function TaskModal({ task, onClose, onUpdate }: {
+export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
   task: Task
   onClose: () => void
   onUpdate?: (taskId: string, body: Partial<Task>) => void
+  onRestore?: () => void
 }) {
   const [title, setTitle]       = useState(task.title)
   const [description, setDesc]  = useState(task.description)
@@ -136,13 +137,20 @@ export default function TaskModal({ task, onClose, onUpdate }: {
       <div className="absolute inset-0 bg-black/30" onClick={handleSave} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700">
-          <input
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            className="text-base font-semibold flex-1 focus:outline-none bg-transparent dark:text-gray-100 border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-500 transition-colors pb-0.5"
-            placeholder="태스크 이름" maxLength={200}
-          />
-          <button onClick={handleSave} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors ml-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {task.archived && (
+              <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shrink-0">
+                <Archive size={10} /> 보관됨
+              </span>
+            )}
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className="text-base font-semibold flex-1 focus:outline-none bg-transparent dark:text-gray-100 border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-500 transition-colors pb-0.5 min-w-0"
+              placeholder="태스크 이름" maxLength={200}
+            />
+          </div>
+          <button onClick={handleSave} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors ml-2 shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -301,7 +309,15 @@ export default function TaskModal({ task, onClose, onUpdate }: {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            {onRestore && (
+              <button onClick={() => { onRestore(); onClose() }}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                <ArchiveRestore size={14} /> 복원
+              </button>
+            )}
+          </div>
           <button onClick={handleSave}
             className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">저장</button>
         </div>
