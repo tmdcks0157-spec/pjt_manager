@@ -652,18 +652,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <Archive size={14} /> 보관된 태스크 ({archivedTasks.length})
                 </button>
                 {showArchived && (
-                  <div className="space-y-2 max-w-72">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {archivedTasks.map(task => (
-                      <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-60">
-                        <p className="text-sm text-gray-500 dark:text-gray-400 line-through truncate">{task.title}</p>
+                      <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-60 hover:opacity-80 transition-opacity">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-through truncate">{task.title}</p>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                           <button onClick={() => updateTaskMutation.mutate({ taskId: task.id, body: { archived: false } })}
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">
-                            <ArchiveRestore size={13} />
+                            <ArchiveRestore size={12} />
                           </button>
                           <button onClick={() => updateTaskMutation.mutate({ taskId: task.id, body: { deleted_at: new Date().toISOString() } })}
                             className="p-0.5 text-gray-400 hover:text-red-400 transition-colors" title="휴지통으로">
-                            <Trash2 size={13} />
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>
@@ -682,10 +682,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   <Trash2 size={14} /> 휴지통 ({trashedTasks.length})
                 </button>
                 {showTrash && (
-                  <div className="space-y-2 max-w-72">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {trashedTasks.map(task => (
-                      <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-50">
-                        <p className="text-sm text-gray-400 dark:text-gray-500 line-through truncate">{task.title}</p>
+                      <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-50 hover:opacity-70 transition-opacity">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 line-through truncate">{task.title}</p>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                           <button onClick={() => updateTaskMutation.mutate({ taskId: task.id, body: { deleted_at: null } })}
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">
