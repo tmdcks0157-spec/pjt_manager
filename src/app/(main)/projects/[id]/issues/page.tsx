@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { use } from 'react'
 import {
   Plus, X, ChevronLeft, AlertCircle, BookOpen,
@@ -72,9 +72,11 @@ function fmtTimestamp(d: string) {
 export default function IssuesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
 
-  const [filter, setFilter] = useState<FilterType>('all')
+  const initialFilter: FilterType = searchParams.get('tab') === 'note' ? 'note' : 'all'
+  const [filter, setFilter] = useState<FilterType>(initialFilter)
   const [showModal, setShowModal] = useState(false)
   const [editPost, setEditPost] = useState<Post | null>(null)
   const [modalSize, setModalSize] = useState<'md' | 'lg' | 'xl'>(() =>
