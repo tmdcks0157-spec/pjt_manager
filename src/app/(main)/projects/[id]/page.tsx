@@ -462,13 +462,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               href={`/projects/${id}/issues`}
               className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400 transition-colors"
             >
-              <MessageSquare size={13} /> 이슈
-            </Link>
-            <Link
-              href={`/projects/${id}/issues?tab=note`}
-              className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400 transition-colors"
-            >
-              <BookOpen size={13} /> 기록
+              <BookOpen size={13} /> 이슈 & 기록
             </Link>
             <div className="ml-auto flex items-center gap-3">
               <div className="relative">
