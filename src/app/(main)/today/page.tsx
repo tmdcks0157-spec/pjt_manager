@@ -65,7 +65,7 @@ export default function TodayPage() {
     queryKey: ['today-posts', todayStart],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('posts').select('id, project_id, type, title, status, priority, created_at')
+        .from('posts').select('id, project_id, type, title, status, priority, tags, created_at')
         .gte('created_at', todayStart).lte('created_at', todayEnd)
         .order('created_at', { ascending: false })
       if (error) {

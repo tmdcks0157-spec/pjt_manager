@@ -81,6 +81,7 @@ export interface Post {
   body?: string | null
   status: 'open' | 'closed'
   priority: string
+  tags: string[]
   created_at: string
 }
 

@@ -39,12 +39,19 @@ function toDateKey(dateStr: string) {
   return dateStr.split('T')[0]
 }
 
+function localDateKey(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export default function WeeklyReportPage() {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
   const [chartView, setChartView] = useState<'weekly' | 'monthly'>('weekly')
   const { start, end } = useMemo(() => getWeekRange(weekOffset), [weekOffset])
-  const todayKey = new Date().toISOString().split('T')[0]
+  const todayKey = localDateKey(new Date())
   const { start: monthStart, end: monthEnd } = useMemo(() => getMonthRange(), [])
 
   const { data: projects = [] } = useProjects()
@@ -89,7 +96,7 @@ export default function WeeklyReportPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('posts')
-        .select('id, project_id, type, title, status, priority, created_at')
+        .select('id, project_id, type, title, status, priority, tags, created_at')
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString())
         .order('created_at', { ascending: false })
@@ -168,13 +175,13 @@ export default function WeeklyReportPage() {
   // 요일별 태스크 그루핑
   const tasksByDay = useMemo(() => {
     const map: Record<string, { completed: Task[]; created: Task[] }> = {}
-    days.forEach(d => { map[toDateKey(d.toISOString())] = { completed: [], created: [] } })
+    days.forEach(d => { map[localDateKey(d)] = { completed: [], created: [] } })
     for (const t of completedTasks) {
-      const key = toDateKey(t.updated_at)
+      const key = localDateKey(new Date(t.updated_at))
       if (map[key]) map[key].completed.push(t)
     }
     for (const t of weekTasks) {
-      const key = toDateKey(t.created_at)
+      const key = localDateKey(new Date(t.created_at))
       if (map[key]) map[key].created.push(t)
     }
     return map
@@ -198,14 +205,14 @@ export default function WeeklyReportPage() {
   const weeklyChartData = useMemo(() =>
     days.map((d, i) => ({
       label: DAY_LABELS[i],
-      completed: tasksByDay[toDateKey(d.toISOString())]?.completed.length ?? 0,
-      created: tasksByDay[toDateKey(d.toISOString())]?.created.length ?? 0,
+      completed: tasksByDay[localDateKey(d)]?.completed.length ?? 0,
+      created: tasksByDay[localDateKey(d)]?.created.length ?? 0,
     })),
     [days, tasksByDay]
   )
 
   const todayDayIndex = useMemo(() =>
-    days.findIndex(d => toDateKey(d.toISOString()) === todayKey),
+    days.findIndex(d => localDateKey(d) === todayKey),
     [days, todayKey]
   )
 
@@ -367,6 +374,55 @@ export default function WeeklyReportPage() {
             </div>
           </div>
 
+          {/* 이슈/기록 요약 카드 */}
+          {weeklyPosts.length > 0 && (
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-2">
+                  <MessageSquare size={15} className="text-blue-500" />
+                </div>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {weeklyPosts.filter(p => p.type === 'issue').length}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">이슈 등록</p>
+              </div>
+              <div className={cn('border rounded-xl p-4 text-center',
+                weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
+                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+              )}>
+                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2',
+                  weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
+                    ? 'bg-orange-100 dark:bg-orange-900/40'
+                    : 'bg-gray-50 dark:bg-gray-700'
+                )}>
+                  <AlertCircle size={15} className={
+                    weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
+                      ? 'text-orange-500'
+                      : 'text-gray-400 dark:text-gray-500'
+                  } />
+                </div>
+                <p className={cn('text-2xl font-bold',
+                  weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length > 0
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : 'dark:text-gray-100'
+                )}>
+                  {weeklyPosts.filter(p => p.type === 'issue' && p.status === 'open').length}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">미해결 이슈</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-2">
+                  <FileText size={15} className="text-purple-500" />
+                </div>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {weeklyPosts.filter(p => p.type === 'note').length}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">기록 작성</p>
+              </div>
+            </div>
+          )}
+
           {/* 생성/완료 추이 차트 */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-8">
             <div className="flex items-center justify-between mb-3">
@@ -405,7 +461,7 @@ export default function WeeklyReportPage() {
           {/* 요일별 그리드 */}
           <div className="grid grid-cols-7 gap-2 mb-8">
             {days.map((day, i) => {
-              const key = toDateKey(day.toISOString())
+              const key = localDateKey(day)
               const dayData = tasksByDay[key] ?? { completed: [], created: [] }
               const isToday = key === todayKey
               const isWeekend = i >= 5

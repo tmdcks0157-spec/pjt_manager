@@ -14,7 +14,7 @@ import { X, CalendarDays, Users, CheckSquare, Square } from 'lucide-react'
 export default function TaskModal({ task, onClose, onUpdate }: {
   task: Task
   onClose: () => void
-  onUpdate: (taskId: string, body: Partial<Task>) => void
+  onUpdate?: (taskId: string, body: Partial<Task>) => void
 }) {
   const [title, setTitle]       = useState(task.title)
   const [description, setDesc]  = useState(task.description)
@@ -120,7 +120,7 @@ export default function TaskModal({ task, onClose, onUpdate }: {
   const completedCount = checklistItems.filter(i => i.completed).length
 
   function handleSave() {
-    onUpdate(task.id, {
+    onUpdate?.(task.id, {
       title:       title.trim() || task.title,
       description, notes, priority, task_type: taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,

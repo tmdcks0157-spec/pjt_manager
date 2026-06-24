@@ -20,8 +20,8 @@ import { cn } from '@/lib/utils'
 import AutoTextarea from '@/components/ui/AutoTextarea'
 
 type FilterType      = 'all' | 'overdue' | 'today' | 'urgent' | 'high'
-type ViewType        = 'tasks' | 'issues'
-type IssueFilterType = 'all' | 'open' | 'closed' | 'note'
+type ViewType        = 'tasks' | 'issues' | 'notes'
+type IssueFilterType = 'all' | 'open' | 'closed'
 type SelectedItem    =
   | { kind: 'task'; item: Task }
   | { kind: 'post'; item: Post; projectId: string }
@@ -93,7 +93,7 @@ export default function OverviewPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('posts')
-        .select('id, project_id, type, title, body, status, priority, created_at')
+        .select('id, project_id, type, title, body, status, priority, tags, created_at')
         .order('created_at', { ascending: false })
       if (error) {
         if (error.code === '42P01' || error.message?.includes('posts')) return []
@@ -140,13 +140,15 @@ export default function OverviewPage() {
   }, [activeTasks, filter, today])
 
   const filteredPosts = useMemo(() => {
+    const base = view === 'notes'
+      ? allPosts.filter(p => p.type === 'note')
+      : allPosts.filter(p => p.type === 'issue')
     switch (issueFilter) {
-      case 'open':   return allPosts.filter(p => p.type === 'issue' && p.status === 'open')
-      case 'closed': return allPosts.filter(p => p.type === 'issue' && p.status === 'closed')
-      case 'note':   return allPosts.filter(p => p.type === 'note')
-      default:       return allPosts
+      case 'open':   return base.filter(p => p.status === 'open')
+      case 'closed': return base.filter(p => p.status === 'closed')
+      default:       return base
     }
-  }, [allPosts, issueFilter])
+  }, [allPosts, view, issueFilter])
 
   const tasksByProject = useMemo(() => {
     const map: Record<string, Task[]> = {}
@@ -181,10 +183,12 @@ export default function OverviewPage() {
   }), [activeTasks, today])
 
   const issueStats = useMemo(() => ({
-    total:  allPosts.length,
+    issues: allPosts.filter(p => p.type === 'issue').length,
     open:   allPosts.filter(p => p.type === 'issue' && p.status === 'open').length,
     closed: allPosts.filter(p => p.type === 'issue' && p.status === 'closed').length,
-    note:   allPosts.filter(p => p.type === 'note').length,
+    notes:  allPosts.filter(p => p.type === 'note').length,
+    notesOpen:   allPosts.filter(p => p.type === 'note' && p.status === 'open').length,
+    notesClosed: allPosts.filter(p => p.type === 'note' && p.status === 'closed').length,
   }), [allPosts])
 
   function toggleCollapse(key: string) {
@@ -269,12 +273,17 @@ export default function OverviewPage() {
     { key: 'high',    label: '높음 이상', count: stats.urgent + stats.high, className: 'text-orange-600' },
   ]
 
-  const ISSUE_FILTERS: { key: IssueFilterType; label: string; count: number; className: string }[] = [
-    { key: 'all',    label: '전체', count: issueStats.total,  className: 'text-gray-700 dark:text-gray-300' },
-    { key: 'open',   label: '열림', count: issueStats.open,   className: 'text-blue-600' },
-    { key: 'closed', label: '닫힘', count: issueStats.closed, className: 'text-gray-500' },
-    { key: 'note',   label: '기록', count: issueStats.note,   className: 'text-purple-600' },
-  ]
+  const ISSUE_FILTERS: { key: IssueFilterType; label: string; count: number; className: string }[] = view === 'notes'
+    ? [
+        { key: 'all',    label: '전체', count: issueStats.notes,       className: 'text-gray-700 dark:text-gray-300' },
+        { key: 'open',   label: '열림', count: issueStats.notesOpen,   className: 'text-purple-600' },
+        { key: 'closed', label: '닫힘', count: issueStats.notesClosed, className: 'text-gray-500' },
+      ]
+    : [
+        { key: 'all',    label: '전체', count: issueStats.issues, className: 'text-gray-700 dark:text-gray-300' },
+        { key: 'open',   label: '열림', count: issueStats.open,   className: 'text-blue-600' },
+        { key: 'closed', label: '닫힘', count: issueStats.closed, className: 'text-gray-500' },
+      ]
 
   function fmtDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
@@ -574,14 +583,26 @@ export default function OverviewPage() {
               <CheckSquare size={14} /> 태스크 현황
             </button>
             <button
-              onClick={() => { setView('issues'); setSelected(null) }}
+              onClick={() => { setView('issues'); setIssueFilter('all'); setSelected(null) }}
               className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all',
                 view === 'issues' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')}
             >
-              <MessageSquare size={14} /> 이슈 & 기록
+              <MessageSquare size={14} /> 이슈
               {issueStats.open > 0 && (
-                <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
                   {issueStats.open}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => { setView('notes'); setIssueFilter('all'); setSelected(null) }}
+              className={cn('flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all',
+                view === 'notes' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')}
+            >
+              <BookOpen size={14} /> 기록
+              {issueStats.notes > 0 && (
+                <span className="text-[10px] font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full">
+                  {issueStats.notes}
                 </span>
               )}
             </button>
@@ -722,8 +743,8 @@ export default function OverviewPage() {
             </>
           )}
 
-          {/* ── 이슈 & 기록 뷰 ── */}
-          {view === 'issues' && (
+          {/* ── 이슈 / 기록 뷰 ── */}
+          {(view === 'issues' || view === 'notes') && (
             <>
               <div className="flex items-center gap-2 mb-6 flex-wrap">
                 {ISSUE_FILTERS.map(f => (
@@ -751,8 +772,10 @@ export default function OverviewPage() {
                 <p className="text-gray-400 text-sm">불러오는 중...</p>
               ) : activeIssueProjects.length === 0 ? (
                 <div className="text-center py-20 text-gray-400">
-                  <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">해당 조건의 이슈/기록이 없습니다.</p>
+                  {view === 'notes'
+                    ? <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
+                    : <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />}
+                  <p className="text-sm">해당 조건의 {view === 'notes' ? '기록' : '이슈'}이 없습니다.</p>
                 </div>
               ) : (
                 <div className="space-y-4">

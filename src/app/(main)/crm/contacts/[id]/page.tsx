@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Phone, Mail, Globe, Tag,
-  Plus, Edit2, Trash2,
+  Plus, Edit2, Trash2, CheckCircle2, ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useContact, useDeleteContact, useCompanies } from '@/hooks/useCRM'
@@ -16,6 +16,8 @@ import { useAuthStore } from '@/stores/auth-store'
 import ActivityTimeline from '@/components/crm/ActivityTimeline'
 import ActivityForm from '@/components/crm/ActivityForm'
 import ContactForm from '@/components/crm/ContactForm'
+import TaskModal from '@/components/kanban/TaskModal'
+import { useAllColumns } from '@/hooks/useAllColumns'
 import type { Post, Task } from '@/types'
 
 type Tab = 'activities' | 'posts' | 'tasks'
@@ -30,11 +32,18 @@ export default function ContactDetailPage() {
   const [tab, setTab] = useState<Tab>('activities')
   const [showActivityForm, setShowActivityForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
   const { data: contact, isLoading } = useContact(id)
   const { data: activities = [] } = useActivities(id)
   const { data: companies = [] } = useCompanies()
   const deleteContact = useDeleteContact()
+  const { data: columns = [] } = useAllColumns()
+
+  const doneColIds = useMemo(
+    () => new Set(columns.filter(c => c.name === '완료').map(c => c.id)),
+    [columns]
+  )
 
   // 연결된 posts (이슈&기록)
   const { data: posts = [] } = useQuery<Post[]>({
@@ -237,14 +246,25 @@ export default function ContactDetailPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {tasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                  <p className="flex-1 text-sm text-gray-800 dark:text-gray-200">{task.title}</p>
-                  {task.due_date && (
-                    <span className="text-[10px] text-gray-400 shrink-0">{task.due_date.slice(0, 10)}</span>
-                  )}
-                </div>
-              ))}
+              {tasks.map(task => {
+                const isDone = doneColIds.has(task.status)
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => setSelectedTask(task)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+                  >
+                    <CheckCircle2 className={cn('w-4 h-4 shrink-0', isDone ? 'text-green-500' : 'text-gray-300 dark:text-gray-600')} />
+                    <p className={cn('flex-1 text-sm', isDone ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200')}>
+                      {task.title}
+                    </p>
+                    {task.due_date && (
+                      <span className="text-[10px] text-gray-400 shrink-0">{task.due_date.slice(0, 10)}</span>
+                    )}
+                    <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )
+              })}
             </div>
           )
         )}
@@ -255,6 +275,13 @@ export default function ContactDetailPage() {
           companies={companies}
           contact={contact}
           onClose={() => setShowEditForm(false)}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
         />
       )}
     </div>

@@ -30,6 +30,7 @@ interface Post {
   body: string | null
   status: IssueStatus
   priority: PostPriority
+  tags: string[]
   recorded_at: string | null
   created_at: string
   updated_at: string
@@ -97,6 +98,9 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const [formContactId, setFormContactId] = useState('')
   const [formRecordedAt, setFormRecordedAt] = useState(nowLocalISO())
   const [formError, setFormError]         = useState('')
+  const [formTags, setFormTags]           = useState<string[]>([])
+  const [tagInput, setTagInput]           = useState('')
+  const [tagFilter, setTagFilter]         = useState<string | null>(null)
   const titleRef   = useRef<HTMLInputElement>(null)
 
   const [setupNeeded, setSetupNeeded] = useState(false)
@@ -112,6 +116,8 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     setFormContactId('')
     setFormRecordedAt(nowLocalISO())
     setFormError('')
+    setFormTags([])
+    setTagInput('')
     setShowModal(true)
   }
 
@@ -124,7 +130,15 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
     setFormContactId(post.contact_id ?? '')
     setFormRecordedAt(post.recorded_at ? post.recorded_at.slice(0, 16) : nowLocalISO())
     setFormError('')
+    setFormTags(post.tags ?? [])
+    setTagInput('')
     setShowModal(true)
+  }
+
+  function addTag(raw: string) {
+    const tag = raw.trim().toLowerCase().replace(/[,\s]+/g, '-').replace(/[^a-z0-9가-힣\-]/g, '')
+    if (tag && !formTags.includes(tag)) setFormTags(prev => [...prev, tag])
+    setTagInput('')
   }
 
   function closeModal() {
@@ -195,6 +209,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         status: 'open',
         contact_id: formContactId || null,
         recorded_at: formRecordedAt ? new Date(formRecordedAt).toISOString() : new Date().toISOString(),
+        tags: formTags,
       })
       if (error) throw new Error(error.message)
     },
@@ -214,6 +229,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
         contact_id: formContactId || null,
         recorded_at: formRecordedAt ? new Date(formRecordedAt).toISOString() : null,
         updated_at: new Date().toISOString(),
+        tags: formTags,
       }).eq('id', editPost.id)
       if (error) throw new Error(error.message)
     },
@@ -245,12 +261,18 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
   const openCount   = issues.filter(i => i.status === 'open').length
   const closedCount = issues.filter(i => i.status === 'closed').length
 
+  const allTags = Array.from(new Set(posts.flatMap(p => p.tags ?? []))).sort()
+
   const filtered = posts.filter(p => {
-    if (filter === 'all')    return true
-    if (filter === 'open')   return p.type === 'issue' && p.status === 'open'
-    if (filter === 'closed') return p.type === 'issue' && p.status === 'closed'
-    if (filter === 'note')   return p.type === 'note'
-    return true
+    const typeOk = (() => {
+      if (filter === 'all')    return true
+      if (filter === 'open')   return p.type === 'issue' && p.status === 'open'
+      if (filter === 'closed') return p.type === 'issue' && p.status === 'closed'
+      if (filter === 'note')   return p.type === 'note'
+      return true
+    })()
+    const tagOk = !tagFilter || (p.tags ?? []).includes(tagFilter)
+    return typeOk && tagOk
   })
 
   const FILTERS: { key: FilterType; label: string; count: number }[] = [
@@ -302,7 +324,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
       </div>
 
       {/* 필터 바 */}
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         {FILTERS.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
             className={cn(
@@ -321,6 +343,29 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
           </button>
         ))}
       </div>
+
+      {/* 태그 필터 pills */}
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+          {tagFilter && (
+            <button onClick={() => setTagFilter(null)}
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+              <X size={9} /> 태그 해제
+            </button>
+          )}
+          {allTags.map(tag => (
+            <button key={tag} onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+              className={cn(
+                'px-2 py-1 rounded-full text-[10px] font-medium border transition-all',
+                tagFilter === tag
+                  ? 'bg-violet-600 text-white border-transparent'
+                  : 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/40'
+              )}>
+              # {tag}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 목록 */}
       {isLoading ? (
@@ -394,6 +439,22 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                         </span>
                       )}
                     </div>
+
+                    {post.tags?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {post.tags.map(tag => (
+                          <button key={tag} onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                            className={cn(
+                              'px-1.5 py-0.5 rounded-full text-[10px] font-medium transition-colors',
+                              tagFilter === tag
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 hover:bg-violet-100'
+                            )}>
+                            # {tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                     {post.body && (
                       <div className="mt-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5">
@@ -521,6 +582,31 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                   placeholder={formType === 'issue'
                     ? '발생 상황, 재현 방법, 영향 범위 등을 자세히 적어주세요'
                     : '메모, 회의록, 학습 내용 등을 자유롭게 기록하세요'}
+                />
+              </div>
+
+              {/* 태그 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">태그</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {formTags.map(tag => (
+                    <span key={tag} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                      # {tag}
+                      <button type="button" onClick={() => setFormTags(prev => prev.filter(t => t !== tag))} className="hover:text-red-500 transition-colors">
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput) }
+                  }}
+                  onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
+                  placeholder="태그 입력 후 Enter (예: 버그, 긴급)"
+                  className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all"
                 />
               </div>
 
