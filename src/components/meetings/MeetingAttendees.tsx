@@ -56,21 +56,47 @@ export default function MeetingAttendees({ meeting }: Props) {
 
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">참석자</p>
+      <p className="text-[10px] text-gray-400 font-medium mb-2 flex items-center gap-1">
+        <UserPlus size={10} /> 참석자
+      </p>
 
-      {/* 참석자 칩 */}
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {attendees.map(a => (
-          <span key={a.id}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs
-                       bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-            {a.name}
-            <button onClick={() => removeAttendee(a.id)} className="text-gray-400 hover:text-red-400">
-              <X size={10} />
-            </button>
-          </span>
-        ))}
-      </div>
+      {/* 카드 그리드 */}
+      {attendees.length > 0 && (
+        <div className="grid grid-cols-2 gap-1.5 mb-2">
+          {attendees.map(a => (
+            <div
+              key={a.id}
+              className="group relative flex items-start gap-1.5 p-2 rounded-lg
+                         border border-gray-200 dark:border-gray-700
+                         bg-white dark:bg-gray-800/60"
+            >
+              {/* 이니셜 아바타 */}
+              <div className="shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700
+                              flex items-center justify-center text-[10px] font-semibold
+                              text-gray-500 dark:text-gray-400">
+                {a.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 truncate leading-tight">
+                  {a.name}
+                </p>
+                {a.email ? (
+                  <p className="text-[10px] text-gray-400 truncate leading-tight">{a.email}</p>
+                ) : (
+                  <p className="text-[10px] text-gray-300 dark:text-gray-600 leading-tight">미등록</p>
+                )}
+              </div>
+              <button
+                onClick={() => removeAttendee(a.id)}
+                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity
+                           text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400"
+              >
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 입력 */}
       <div className="relative">

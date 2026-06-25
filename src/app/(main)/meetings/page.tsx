@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronDown } from 'lucide-react'
 import { format, isToday, isThisWeek, isThisMonth, subWeeks } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
@@ -46,8 +46,8 @@ export default function MeetingsPage() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
 
-  // meetings — project JOIN 없이 (FK 미정의로 PostgREST 오류 방지)
   const { data: rawMeetings = [], isLoading } = useQuery({
     queryKey: ['meetings'],
     enabled: !!user,
@@ -55,14 +55,14 @@ export default function MeetingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('id, title, date, duration_minutes, status, project_id, action_items(id, status)')
+        .select('id, title, date, duration_minutes, status, project_id, archived, deleted_at, action_items(id, status)')
+        .is('deleted_at', null)
         .order('date', { ascending: false })
       if (error) throw error
       return data ?? []
     },
   })
 
-  // projects — 별도 조회 후 프론트에서 병합
   const { data: projects = [] } = useQuery<ProjectSlim[]>({
     queryKey: ['projects-slim'],
     enabled: !!user,
@@ -82,13 +82,16 @@ export default function MeetingsPage() {
     [projects]
   )
 
-  const meetings = useMemo(
+  const allMeetings = useMemo(
     () => rawMeetings.map(m => ({
       ...m,
       project: m.project_id ? (projectsMap[m.project_id] ?? null) : null,
     })) as unknown as Meeting[],
     [rawMeetings, projectsMap]
   )
+
+  const meetings = allMeetings.filter(m => !m.archived)
+  const archivedMeetings = allMeetings.filter(m => m.archived)
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -106,6 +109,30 @@ export default function MeetingsPage() {
     },
   })
 
+  function archiveMeeting(id: string) {
+    supabase.from('meetings').update({ archived: true }).eq('id', id).then(() => {
+      qc.invalidateQueries({ queryKey: ['meetings'] })
+    })
+  }
+
+  function unarchiveMeeting(id: string) {
+    supabase.from('meetings').update({ archived: false }).eq('id', id).then(() => {
+      qc.invalidateQueries({ queryKey: ['meetings'] })
+    })
+  }
+
+  function deleteMeeting(id: string) {
+    supabase.from('meetings').update({ deleted_at: new Date().toISOString() }).eq('id', id).then(() => {
+      qc.invalidateQueries({ queryKey: ['meetings'] })
+    })
+  }
+
+  function changeProject(meetingId: string, projectId: string | null) {
+    supabase.from('meetings').update({ project_id: projectId }).eq('id', meetingId).then(() => {
+      qc.invalidateQueries({ queryKey: ['meetings'] })
+    })
+  }
+
   const filtered = useMemo(() => {
     if (!selectedDate) return meetings
     return meetings.filter(m => m.date.startsWith(selectedDate))
@@ -113,7 +140,6 @@ export default function MeetingsPage() {
 
   const grouped = groupMeetings(filtered)
 
-  // 이번 달 통계
   const thisMonth = new Date()
   const monthMeetings = meetings.filter(m => {
     const d = new Date(m.date)
@@ -185,11 +211,45 @@ export default function MeetingsPage() {
               </h2>
               <div className="space-y-2">
                 {items.map(m => (
-                  <MeetingListItem key={m.id} meeting={m} />
+                  <MeetingListItem
+                    key={m.id}
+                    meeting={m}
+                    projects={projects}
+                    onArchive={() => archiveMeeting(m.id)}
+                    onDelete={() => deleteMeeting(m.id)}
+                    onProjectChange={(pid) => changeProject(m.id, pid)}
+                  />
                 ))}
               </div>
             </section>
           ))}
+
+          {/* 보관된 회의록 */}
+          {archivedMeetings.length > 0 && (
+            <div className="mt-8 border-t border-gray-100 dark:border-gray-800 pt-6">
+              <button
+                onClick={() => setShowArchived(v => !v)}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mb-3"
+              >
+                <ChevronDown size={13} className={showArchived ? '' : '-rotate-90'} />
+                보관된 회의 {archivedMeetings.length}건
+              </button>
+              {showArchived && (
+                <div className="space-y-2 opacity-60">
+                  {archivedMeetings.map(m => (
+                    <MeetingListItem
+                      key={m.id}
+                      meeting={m}
+                      projects={projects}
+                      onArchive={() => unarchiveMeeting(m.id)}
+                      onDelete={() => deleteMeeting(m.id)}
+                      onProjectChange={(pid) => changeProject(m.id, pid)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

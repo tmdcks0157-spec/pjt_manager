@@ -138,6 +138,8 @@ export interface Meeting {
   notes: string
   project_id: string | null
   started_at: string | null
+  archived: boolean
+  deleted_at: string | null
   created_at: string
   updated_at: string
   attendees?: MeetingAttendee[]
