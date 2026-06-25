@@ -51,23 +51,6 @@ function buildHolidayMap(): Record<string, string> {
     }
   }
 
-  // 대체공휴일: 공휴일(근로자의 날·제헌절 제외)이 토/일이면 다음 평일에 추가
-  // 처리 순서를 보장하기 위해 정렬 후 순회 (이미 추가된 대체공휴일은 map에 반영됨)
-  const NO_SUBSTITUTE = new Set(['근로자의 날', '제헌절'])
-  for (const key of Object.keys(map).sort()) {
-    if (NO_SUBSTITUTE.has(map[key])) continue
-    const [ky, km, kd] = key.split('-').map(Number)
-    const dow = new Date(ky, km - 1, kd).getDay() // 0=일, 6=토
-    if (dow !== 0 && dow !== 6) continue
-
-    // 다음 평일 중 아직 공휴일이 아닌 날 탐색
-    const sub = new Date(ky, km - 1, kd + 1)
-    while (sub.getDay() === 0 || sub.getDay() === 6 || map[buildHolidayKey(sub)]) {
-      sub.setDate(sub.getDate() + 1)
-    }
-    map[buildHolidayKey(sub)] = '대체공휴일'
-  }
-
   return map
 }
 
