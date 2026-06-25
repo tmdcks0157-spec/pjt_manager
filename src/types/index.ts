@@ -120,6 +120,56 @@ export interface Contact {
   updated_at: string
 }
 
+// ── Meeting Notes ────────────────────────────────────────────
+export interface AgendaItem {
+  id: string
+  text: string
+  done: boolean
+}
+
+export interface Meeting {
+  id: string
+  user_id: string
+  title: string
+  date: string
+  duration_minutes: number | null
+  status: 'scheduled' | 'in_progress' | 'completed'
+  agenda: AgendaItem[]
+  notes: string
+  project_id: string | null
+  started_at: string | null
+  created_at: string
+  updated_at: string
+  attendees?: MeetingAttendee[]
+  action_items?: ActionItem[]
+  project?: { id: string; name: string; color: string } | null
+}
+
+export interface MeetingAttendee {
+  id: string
+  meeting_id: string
+  contact_id: string | null
+  name: string
+  email: string | null
+  role: 'organizer' | 'attendee'
+  created_at: string
+}
+
+export interface ActionItem {
+  id: string
+  meeting_id: string
+  user_id: string
+  text: string
+  assignee_name: string | null
+  assignee_contact_id: string | null
+  due_date: string | null
+  status: 'open' | 'done'
+  exported_task_id: string | null
+  created_at: string
+  updated_at: string
+}
+// ─────────────────────────────────────────────────────────────
+
 export type ActivityType = 'call' | 'email' | 'meeting' | 'note'
 
 export interface Activity {
