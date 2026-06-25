@@ -42,6 +42,11 @@ export interface Task {
   assignee_name?: string | null
   contact_ids?: string[] | null
   assignee_names?: string[] | null
+  recurrence_type?: string | null
+  recurrence_interval?: number | null
+  recurrence_end?: string | null
+  parent_task_id?: string | null
+  is_recurring_root?: boolean | null
   checklist_items?: ChecklistItem[]
   created_at: string
   updated_at: string

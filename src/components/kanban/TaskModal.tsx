@@ -9,7 +9,8 @@ import { useContacts } from '@/hooks/useCRM'
 import ContactCombobox from '@/components/ui/ContactCombobox'
 import { PRIORITY_META } from '@/lib/constants'
 import { tagColor } from '@/lib/taskUtils'
-import { X, CalendarDays, Users, CheckSquare, Square, ArchiveRestore, Archive } from 'lucide-react'
+import { X, CalendarDays, Users, CheckSquare, Square, ArchiveRestore, Archive, Repeat } from 'lucide-react'
+import { generateInstances } from '@/lib/recurrenceUtils'
 
 export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
   task: Task
@@ -25,8 +26,11 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
   const [dueDate, setDueDate]   = useState(task.due_date ? task.due_date.slice(0, 10) : '')
   const [tags, setTags]             = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput]     = useState('')
-  const [contactIds, setContactIds]       = useState<string[]>(task.contact_ids?.length ? task.contact_ids : (task.contact_id ? [task.contact_id] : []))
-  const [assigneeNames, setAssigneeNames] = useState<string[]>(task.assignee_names?.length ? task.assignee_names : (task.assignee_name ? [task.assignee_name] : []))
+  const [contactIds, setContactIds]           = useState<string[]>(task.contact_ids?.length ? task.contact_ids : (task.contact_id ? [task.contact_id] : []))
+  const [assigneeNames, setAssigneeNames]     = useState<string[]>(task.assignee_names?.length ? task.assignee_names : (task.assignee_name ? [task.assignee_name] : []))
+  const [recurrenceType, setRecurrenceType]   = useState<string>(task.recurrence_type ?? '')
+  const [recurrenceInterval, setRecurrenceInterval] = useState<number>(task.recurrence_interval ?? 1)
+  const [recurrenceEnd, setRecurrenceEnd]     = useState<string>(task.recurrence_end ?? '')
   const [newItemText, setNewItemText] = useState('')
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemText, setEditingItemText] = useState('')
@@ -120,8 +124,8 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
 
   const completedCount = checklistItems.filter(i => i.completed).length
 
-  function handleSave() {
-    onUpdate?.(task.id, {
+  async function handleSave() {
+    const body: Partial<Task> = {
       title:       title.trim() || task.title,
       description, notes, priority, task_type: taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,
@@ -130,7 +134,35 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
       assignee_names: assigneeNames,
       contact_id:    contactIds[0] ?? null,
       assignee_name: contactIds.length === 0 ? (assigneeNames[0] ?? null) : null,
-    })
+    }
+
+    const isRoot = !task.parent_task_id
+    const hasRecurrence = !!recurrenceType
+    const hadRecurrence = !!task.recurrence_type
+
+    if (isRoot && (hasRecurrence || hadRecurrence)) {
+      // 반복 루트 태스크 직접 저장
+      await supabase.from('tasks').update({
+        ...body,
+        recurrence_type:     recurrenceType || null,
+        recurrence_interval: recurrenceType ? recurrenceInterval : null,
+        recurrence_end:      recurrenceType && recurrenceEnd ? recurrenceEnd : null,
+        is_recurring_root:   hasRecurrence,
+      }).eq('id', task.id)
+
+      if (hasRecurrence) {
+        await generateInstances(task.id, { ...body, project_id: task.project_id, status: task.status }, recurrenceType, recurrenceInterval, recurrenceEnd || null)
+      } else {
+        // 반복 해제: 미래 인스턴스만 삭제 (과거 이력 보존)
+        const nowIso = new Date().toISOString()
+        await supabase.from('tasks').delete().eq('parent_task_id', task.id).gt('due_date', nowIso)
+      }
+      queryClient.invalidateQueries({ queryKey: ['tasks', task.project_id] })
+      queryClient.invalidateQueries({ queryKey: ['all-tasks-calendar'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks-no-due'] })
+    } else {
+      onUpdate?.(task.id, body)
+    }
     onClose()
   }
 
@@ -241,6 +273,51 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
               onChange={(cids, names) => { setContactIds(cids); setAssigneeNames(names) }}
             />
           </div>
+
+          {/* 반복 설정 — 인스턴스(parent_task_id 있음)는 표시하지 않음 */}
+          {!task.parent_task_id && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 flex items-center gap-1"><Repeat size={11} />반복</p>
+                <select
+                  value={recurrenceType}
+                  onChange={e => setRecurrenceType(e.target.value)}
+                  className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none"
+                >
+                  <option value="">없음</option>
+                  <option value="daily">매일</option>
+                  <option value="weekly">매주</option>
+                  <option value="monthly">매월</option>
+                  <option value="yearly">매년</option>
+                </select>
+              </div>
+              {recurrenceType && (
+                <div className="flex items-center gap-2 pl-1">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">간격</span>
+                  <input
+                    type="number" min={1} max={10} value={recurrenceInterval}
+                    onChange={e => setRecurrenceInterval(Math.max(1, Math.min(10, Number(e.target.value))))}
+                    className="w-12 text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-center bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none"
+                  />
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{{ daily: '일', weekly: '주', monthly: '개월', yearly: '년' }[recurrenceType]}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">종료</span>
+                  <input
+                    type="date" value={recurrenceEnd}
+                    onChange={e => setRecurrenceEnd(e.target.value)}
+                    className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none"
+                  />
+                  {recurrenceEnd && (
+                    <button onClick={() => setRecurrenceEnd('')} className="text-gray-300 hover:text-gray-500"><X size={11} /></button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {task.parent_task_id && (
+            <div className="flex items-center gap-1.5 text-xs text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg px-3 py-1.5">
+              <Repeat size={11} /> 반복 일정의 개별 항목 — 이 항목만 수정됩니다
+            </div>
+          )}
 
           {/* 메모 */}
           <div className="space-y-1.5">

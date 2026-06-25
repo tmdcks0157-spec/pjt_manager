@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { requireUserId } from '@/lib/auth'
 import type { Task, Project, CalendarEvent, TaskPriority } from '@/types'
-import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify, ChevronDown, ChevronUp, CheckSquare, Square, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, X, ExternalLink, Plus, Trash2, SlidersHorizontal, Check, LayoutGrid, AlignJustify, ChevronDown, ChevronUp, CheckSquare, Square, Users, Repeat } from 'lucide-react'
+import { generateInstances } from '@/lib/recurrenceUtils'
 import Link from 'next/link'
 import { tagColor, getDueStatus, DUE_STATUS_META as DUE_STATUS_META_FULL } from '@/lib/taskUtils'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -214,16 +215,17 @@ function QuickTaskModal({ date, projects, onClose, onSave }: {
   date: string
   projects: Project[]
   onClose: () => void
-  onSave: (title: string, projectId: string, priority: TaskPriority, dueDate: string) => void
+  onSave: (title: string, projectId: string, priority: TaskPriority, dueDate: string, recurrenceType: string) => void
 }) {
-  const [title, setTitle]       = useState('')
-  const [projectId, setProject] = useState(projects[0]?.id ?? '')
-  const [priority, setPriority] = useState<TaskPriority>('normal')
-  const [dueDate, setDueDate]   = useState(date)
+  const [title, setTitle]             = useState('')
+  const [projectId, setProject]       = useState(projects[0]?.id ?? '')
+  const [priority, setPriority]       = useState<TaskPriority>('normal')
+  const [dueDate, setDueDate]         = useState(date)
+  const [recurrenceType, setRepeat]   = useState('')
 
   function handleSave() {
     if (!title.trim() || !projectId) return
-    onSave(title.trim(), projectId, priority, dueDate)
+    onSave(title.trim(), projectId, priority, dueDate, recurrenceType)
     onClose()
   }
 
@@ -258,10 +260,23 @@ function QuickTaskModal({ date, projects, onClose, onSave }: {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">마감일</label>
-            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">마감일</label>
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1"><Repeat size={10} />반복</label>
+              <select value={recurrenceType} onChange={e => setRepeat(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500">
+                <option value="">없음</option>
+                <option value="daily">매일</option>
+                <option value="weekly">매주</option>
+                <option value="monthly">매월</option>
+                <option value="yearly">매년</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -443,17 +458,21 @@ export default function CalendarPage() {
   })
 
   const createTaskMutation = useMutation({
-    mutationFn: async ({ title, projectId, priority, dueDate }: { title: string; projectId: string; priority: TaskPriority; dueDate: string }) => {
+    mutationFn: async ({ title, projectId, priority, dueDate, recurrenceType }: { title: string; projectId: string; priority: TaskPriority; dueDate: string; recurrenceType?: string }) => {
       const userId = await requireUserId()
       const { data: cols } = await supabase.from('columns').select('id').eq('project_id', projectId).order('order').limit(1)
       const columnId = cols?.[0]?.id
       if (!columnId) throw new Error('프로젝트에 컬럼이 없습니다')
-      const { error } = await supabase.from('tasks').insert({
+      const { data: inserted, error } = await supabase.from('tasks').insert({
         title, project_id: projectId, user_id: userId,
         status: columnId, priority, due_date: dueDate,
         description: '', notes: '', tags: [], order: 0, archived: false,
-      })
+        ...(recurrenceType ? { recurrence_type: recurrenceType, recurrence_interval: 1, is_recurring_root: true } : {}),
+      }).select().single()
       if (error) throw error
+      if (recurrenceType && inserted) {
+        await generateInstances(inserted.id, inserted, recurrenceType, 1, null)
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-tasks-calendar'] })
@@ -636,6 +655,9 @@ export default function CalendarPage() {
           {(isWeekView ? dayTasks : dayTasks.slice(0, 2)).map(task => (
             <div key={task.id} className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md ${task.task_type === 'meeting' ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.task_type === 'meeting' ? 'bg-indigo-400' : PRIORITY_DOT[task.priority]}`} />
+              {(task.is_recurring_root || task.parent_task_id) && (
+                <Repeat size={9} className="text-indigo-400 shrink-0" />
+              )}
               <span className={`text-xs truncate flex-1 leading-tight ${task.task_type === 'meeting' ? 'text-indigo-700 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}>{task.title}</span>
             </div>
           ))}
@@ -697,8 +719,8 @@ export default function CalendarPage() {
           date={quickTaskDate}
           projects={projects}
           onClose={() => setQuickTaskDate(null)}
-          onSave={(title, projectId, priority, dueDate) =>
-            createTaskMutation.mutate({ title, projectId, priority, dueDate })
+          onSave={(title, projectId, priority, dueDate, recurrenceType) =>
+            createTaskMutation.mutate({ title, projectId, priority, dueDate, recurrenceType: recurrenceType || undefined })
           }
         />
       )}
