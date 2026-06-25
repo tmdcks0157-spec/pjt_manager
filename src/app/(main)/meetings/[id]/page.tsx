@@ -54,12 +54,20 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
     queryKey: ['pending-actions', id, meeting?.project_id],
     enabled: !!user && !!meeting?.project_id,
     queryFn: async () => {
+      // 같은 프로젝트의 다른 회의 ID 목록 조회
+      const { data: siblingMeetings } = await supabase
+        .from('meetings')
+        .select('id')
+        .eq('project_id', meeting!.project_id!)
+        .neq('id', id)
+      const siblingIds = (siblingMeetings ?? []).map(m => m.id)
+      if (siblingIds.length === 0) return []
+
       const { data } = await supabase
         .from('action_items')
-        .select('*, meeting:meetings!inner(project_id)')
+        .select('*')
         .eq('status', 'open')
-        .neq('meeting_id', id)
-        .eq('meetings.project_id', meeting!.project_id!)
+        .in('meeting_id', siblingIds)
         .order('created_at', { ascending: false })
         .limit(10)
       return data ?? []

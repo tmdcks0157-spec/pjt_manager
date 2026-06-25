@@ -53,10 +53,10 @@ export default function MeetingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('*, attendees:meeting_attendees(*), action_items(*), project:projects(id, name, color)')
+        .select('id, title, date, duration_minutes, status, project_id, action_items:action_items(id, status), project:projects(id, name, color)')
         .order('date', { ascending: false })
       if (error) throw error
-      return (data ?? []) as Meeting[]
+      return (data ?? []) as unknown as Meeting[]
     },
   })
 
