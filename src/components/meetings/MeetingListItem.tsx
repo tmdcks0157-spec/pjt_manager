@@ -90,33 +90,56 @@ export default function MeetingListItem({ meeting, projects, onArchive, onDelete
           </button>
 
           {showProjectPicker && (
-            <div className="absolute right-0 top-7 z-20 w-44 bg-white dark:bg-gray-800
-                            border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1">
-              <p className="px-3 py-1 text-[10px] text-gray-400 font-medium border-b border-gray-100 dark:border-gray-700">
-                프로젝트 연결
-              </p>
-              <button
-                onMouseDown={() => { onProjectChange(null); setShowProjectPicker(false) }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400
-                           hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
-              >
-                <span className="w-2 h-2 rounded-full border border-gray-300 dark:border-gray-600" />
-                연결 없음
-              </button>
-              {projects.map(p => (
+            <div className="absolute right-0 top-8 z-20 w-52
+                            bg-white dark:bg-gray-800
+                            border border-gray-200 dark:border-gray-700
+                            rounded-xl shadow-xl overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  프로젝트 연결
+                </p>
+              </div>
+              <div className="py-1 max-h-56 overflow-y-auto">
                 <button
-                  key={p.id}
-                  onMouseDown={() => { onProjectChange(p.id); setShowProjectPicker(false) }}
+                  onMouseDown={() => { onProjectChange(null); setShowProjectPicker(false) }}
                   className={cn(
-                    'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left',
-                    'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    'w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-colors',
+                    !meeting.project_id
+                      ? 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   )}
                 >
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                  <span className="truncate">{p.name}</span>
-                  {meeting.project_id === p.id && <span className="ml-auto text-blue-400">✓</span>}
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-500 shrink-0" />
+                  <span className="flex-1">연결 없음</span>
+                  {!meeting.project_id && (
+                    <span className="text-blue-400 text-[10px] font-medium">현재</span>
+                  )}
                 </button>
-              ))}
+                {projects.length > 0 && (
+                  <div className="h-px bg-gray-100 dark:bg-gray-700 mx-3 my-1" />
+                )}
+                {projects.map(p => (
+                  <button
+                    key={p.id}
+                    onMouseDown={() => { onProjectChange(p.id); setShowProjectPicker(false) }}
+                    className={cn(
+                      'w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-colors',
+                      meeting.project_id === p.id
+                        ? 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    )}
+                  >
+                    <span
+                      className="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                      style={{ backgroundColor: p.color }}
+                    />
+                    <span className="flex-1 truncate">{p.name}</span>
+                    {meeting.project_id === p.id && (
+                      <span className="text-blue-400 text-[10px] font-medium">현재</span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

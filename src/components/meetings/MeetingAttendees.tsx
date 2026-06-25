@@ -60,38 +60,39 @@ export default function MeetingAttendees({ meeting }: Props) {
         <UserPlus size={10} /> 참석자
       </p>
 
-      {/* 카드 그리드 */}
+      {/* 참석자 카드 */}
       {attendees.length > 0 && (
-        <div className="grid grid-cols-2 gap-1.5 mb-2">
+        <div className="flex flex-col gap-1.5 mb-2">
           {attendees.map(a => (
             <div
               key={a.id}
-              className="group relative flex items-start gap-1.5 p-2 rounded-lg
+              className="group flex items-center gap-2.5 px-3 py-2 rounded-lg
                          border border-gray-200 dark:border-gray-700
-                         bg-white dark:bg-gray-800/60"
+                         bg-white dark:bg-gray-800/60 hover:border-gray-300 dark:hover:border-gray-600
+                         transition-colors"
             >
               {/* 이니셜 아바타 */}
-              <div className="shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700
-                              flex items-center justify-center text-[10px] font-semibold
+              <div className="shrink-0 w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700
+                              flex items-center justify-center text-xs font-semibold
                               text-gray-500 dark:text-gray-400">
                 {a.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300 truncate leading-tight">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                   {a.name}
                 </p>
                 {a.email ? (
-                  <p className="text-[10px] text-gray-400 truncate leading-tight">{a.email}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{a.email}</p>
                 ) : (
-                  <p className="text-[10px] text-gray-300 dark:text-gray-600 leading-tight">미등록</p>
+                  <p className="text-[10px] text-gray-300 dark:text-gray-600">미등록 연락처</p>
                 )}
               </div>
               <button
                 onClick={() => removeAttendee(a.id)}
-                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity
-                           text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400"
+                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity
+                           text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 ml-auto"
               >
-                <X size={10} />
+                <X size={12} />
               </button>
             </div>
           ))}
