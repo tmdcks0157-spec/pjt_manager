@@ -22,17 +22,19 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
 
-  const { data: meeting, isLoading } = useQuery<Meeting>({
+  // project JOIN 제거 — FK 미정의로 PostgREST 오류 방지
+  const { data: rawMeeting, isLoading } = useQuery({
     queryKey: ['meeting', id],
     enabled: !!user,
+    staleTime: 15 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('*, attendees:meeting_attendees(*), action_items(*), project:projects(id, name, color)')
+        .select('*, attendees:meeting_attendees(*), action_items(*)')
         .eq('id', id)
         .single()
       if (error) throw error
-      return data as Meeting
+      return data
     },
   })
 
@@ -40,6 +42,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
   const { data: allMeetings = [] } = useQuery<Meeting[]>({
     queryKey: ['meetings'],
     enabled: !!user,
+    staleTime: 30 * 1000,
     queryFn: async () => {
       const { data } = await supabase
         .from('meetings')
@@ -49,35 +52,11 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
     },
   })
 
-  // 이전 회의 미완료 액션 아이템 (같은 project_id 범위만, 미연결이면 조회 안 함)
-  const { data: pendingFromPrev = [] } = useQuery<ActionItem[]>({
-    queryKey: ['pending-actions', id, meeting?.project_id],
-    enabled: !!user && !!meeting?.project_id,
-    queryFn: async () => {
-      // 같은 프로젝트의 다른 회의 ID 목록 조회
-      const { data: siblingMeetings } = await supabase
-        .from('meetings')
-        .select('id')
-        .eq('project_id', meeting!.project_id!)
-        .neq('id', id)
-      const siblingIds = (siblingMeetings ?? []).map(m => m.id)
-      if (siblingIds.length === 0) return []
-
-      const { data } = await supabase
-        .from('action_items')
-        .select('*')
-        .eq('status', 'open')
-        .in('meeting_id', siblingIds)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      return data ?? []
-    },
-  })
-
-  // 프로젝트 목록 (export picker용)
+  // 프로젝트 목록 (export picker + project 정보 병합용)
   const { data: projects = [] } = useQuery<ProjectSlim[]>({
-    queryKey: ['projects'],
+    queryKey: ['projects-slim'],
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data } = await supabase
         .from('projects')
@@ -89,8 +68,36 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
     },
   })
 
+  // project 정보를 프론트에서 병합
+  const meeting: Meeting | undefined = rawMeeting
+    ? {
+        ...rawMeeting,
+        project: rawMeeting.project_id
+          ? (projects.find((p: ProjectSlim) => p.id === rawMeeting.project_id) ?? null)
+          : null,
+      } as unknown as Meeting
+    : undefined
+
+  // 이전 회의 미완료 액션 아이템 (같은 project_id 범위만)
+  const { data: pendingFromPrev = [] } = useQuery<ActionItem[]>({
+    queryKey: ['pending-actions', id, rawMeeting?.project_id],
+    enabled: !!user && !!rawMeeting?.project_id,
+    queryFn: async () => {
+      const { data: siblingMeetings } = await supabase
+        .from('meetings').select('id')
+        .eq('project_id', rawMeeting!.project_id!).neq('id', id)
+      const siblingIds = (siblingMeetings ?? []).map(m => m.id)
+      if (siblingIds.length === 0) return []
+      const { data } = await supabase
+        .from('action_items').select('*')
+        .eq('status', 'open').in('meeting_id', siblingIds)
+        .order('created_at', { ascending: false }).limit(10)
+      return data ?? []
+    },
+  })
+
   function handleUpdate(patch: Partial<Meeting>) {
-    qc.setQueryData<Meeting>(['meeting', id], prev => prev ? { ...prev, ...patch } : prev)
+    qc.setQueryData(['meeting', id], (prev: typeof rawMeeting) => prev ? { ...prev, ...patch } : prev)
   }
 
   // 인라인 제목 편집
@@ -119,7 +126,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
     qc.invalidateQueries({ queryKey: ['meeting', id] })
   }
 
-  if (isLoading || !meeting) {
+  if (isLoading || !rawMeeting || !meeting) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="text-sm text-gray-400">불러오는 중...</p>

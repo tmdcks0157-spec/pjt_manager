@@ -13,6 +13,8 @@ import MeetingMiniCalendar from '@/components/meetings/MeetingMiniCalendar'
 import MeetingListItem from '@/components/meetings/MeetingListItem'
 import type { Meeting } from '@/types'
 
+type ProjectSlim = { id: string; name: string; color: string }
+
 function groupMeetings(meetings: Meeting[]): [string, Meeting[]][] {
   const groups: Record<string, Meeting[]> = {}
 
@@ -30,15 +32,13 @@ function groupMeetings(meetings: Meeting[]): [string, Meeting[]][] {
   }
 
   const order = ['오늘', '이번 주', '지난 주', '이번 달']
-  const sorted = Object.entries(groups).sort(([a], [b]) => {
+  return Object.entries(groups).sort(([a], [b]) => {
     const ia = order.indexOf(a), ib = order.indexOf(b)
     if (ia !== -1 && ib !== -1) return ia - ib
     if (ia !== -1) return -1
     if (ib !== -1) return 1
     return b.localeCompare(a)
   })
-
-  return sorted
 }
 
 export default function MeetingsPage() {
@@ -47,18 +47,48 @@ export default function MeetingsPage() {
   const user = useAuthStore(s => s.user)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  const { data: meetings = [], isLoading } = useQuery<Meeting[]>({
+  // meetings — project JOIN 없이 (FK 미정의로 PostgREST 오류 방지)
+  const { data: rawMeetings = [], isLoading } = useQuery({
     queryKey: ['meetings'],
     enabled: !!user,
+    staleTime: 30 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('id, title, date, duration_minutes, status, project_id, action_items:action_items(id, status), project:projects(id, name, color)')
+        .select('id, title, date, duration_minutes, status, project_id, action_items(id, status)')
         .order('date', { ascending: false })
       if (error) throw error
-      return (data ?? []) as unknown as Meeting[]
+      return data ?? []
     },
   })
+
+  // projects — 별도 조회 후 프론트에서 병합
+  const { data: projects = [] } = useQuery<ProjectSlim[]>({
+    queryKey: ['projects-slim'],
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select('id, name, color')
+        .is('deleted_at', null)
+        .eq('archived', false)
+      return (data ?? []) as ProjectSlim[]
+    },
+  })
+
+  const projectsMap = useMemo(
+    () => Object.fromEntries(projects.map(p => [p.id, p])),
+    [projects]
+  )
+
+  const meetings = useMemo(
+    () => rawMeetings.map(m => ({
+      ...m,
+      project: m.project_id ? (projectsMap[m.project_id] ?? null) : null,
+    })) as unknown as Meeting[],
+    [rawMeetings, projectsMap]
+  )
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -66,8 +96,7 @@ export default function MeetingsPage() {
       const { data, error } = await supabase
         .from('meetings')
         .insert({ user_id: userId, title: '제목 없는 회의', date: new Date().toISOString() })
-        .select()
-        .single()
+        .select().single()
       if (error) throw error
       return data
     },
@@ -115,7 +144,6 @@ export default function MeetingsPage() {
       {/* 오른쪽: 리스트 */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-6 py-6">
-          {/* 헤더 */}
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">회의록</h1>
             <button
