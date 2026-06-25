@@ -10,10 +10,11 @@ import { PRIORITY_META } from '@/lib/constants'
 import { tagColor } from '@/lib/taskUtils'
 import {
   Plus, X, Archive, ArchiveRestore, ChevronDown, ChevronRight, Trash2, RotateCcw,
-  GripVertical, CheckSquare, AlertCircle, Clock, Layers, Siren, TrendingUp, BookOpen, MessageSquare,
+  GripVertical, CheckSquare, AlertCircle, Clock, Layers, Siren, TrendingUp, BookOpen, MessageSquare, ClipboardList,
 } from 'lucide-react'
 import Link from 'next/link'
 import { use } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   type DragEndEvent, type DragStartEvent,
@@ -39,6 +40,7 @@ const COLUMN_COLORS = [
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const queryClient = useQueryClient()
+  const router = useRouter()
   const [addingTo, setAddingTo]             = useState<string | null>(null)
   const [newTitle, setNewTitle]             = useState('')
   const [draggingTask, setDraggingTask]     = useState<Task | null>(null)
@@ -180,6 +182,19 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     const high   = base.filter(t => t.priority === 'high'   && !doneColIds.has(t.status)).length
     return { total, done, overdue, dueToday, urgent, high }
   }, [allTasks, columns])
+
+  const createMeetingMutation = useMutation({
+    mutationFn: async () => {
+      const userId = await requireUserId()
+      const { data, error } = await supabase
+        .from('meetings')
+        .insert({ user_id: userId, title: '제목 없는 회의', date: new Date().toISOString(), project_id: id })
+        .select().single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (meeting) => router.push(`/meetings/${meeting.id}`),
+  })
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ taskId, body }: { taskId: string; body: Partial<Task> }) => {
@@ -465,6 +480,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             >
               <BookOpen size={13} /> 이슈 & 기록
             </Link>
+            <button
+              onClick={() => createMeetingMutation.mutate()}
+              disabled={createMeetingMutation.isPending}
+              className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400 transition-colors disabled:opacity-50"
+            >
+              <ClipboardList size={13} /> 회의록
+            </button>
             <div className="ml-auto flex items-center gap-3">
               <div className="relative">
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
