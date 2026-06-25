@@ -163,14 +163,22 @@ export default function TaskCard({ task, columns, projects, currentProjectId, on
                 {completedCount}/{checklist.length}
               </span>
             )}
-            {(task.contact_id && contactsMap[task.contact_id] || task.assignee_name) && (
-              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 font-medium">
-                <Users size={9} />
-                {task.contact_id && contactsMap[task.contact_id]
-                  ? contactsMap[task.contact_id].name
-                  : task.assignee_name}
-              </span>
-            )}
+            {(() => {
+              const ids = task.contact_ids?.length ? task.contact_ids : (task.contact_id ? [task.contact_id] : [])
+              const names = task.assignee_names?.length ? task.assignee_names : (task.assignee_name ? [task.assignee_name] : [])
+              const allNames = [
+                ...ids.map(id => contactsMap[id]?.name).filter(Boolean) as string[],
+                ...names,
+              ]
+              if (allNames.length === 0) return null
+              const label = allNames.length === 1 ? allNames[0] : `${allNames[0]} 외 ${allNames.length - 1}명`
+              return (
+                <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 font-medium">
+                  <Users size={9} />
+                  {label}
+                </span>
+              )
+            })()}
             {hasExpandable && (
               <button
                 onPointerDown={e => e.stopPropagation()}

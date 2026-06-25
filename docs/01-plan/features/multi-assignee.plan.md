@@ -1,7 +1,8 @@
 # Plan: multi-assignee — 태스크 담당자 복수 지정
 
-> 상태: **백로그 (미구현)** — 2026-06-23 기록
+> 상태: **Plan 확정** — 2026-06-25 업데이트
 > 선행 기능: assignee-search (완료 2026-06-23)
+> 제약: **최대 3~5명** 제한 (UI + 저장 시 검증)
 
 ---
 
@@ -71,6 +72,12 @@ CREATE TABLE public.task_assignees (
 | `src/app/(main)/crm/contacts/[id]/page.tsx` | contact 상세 → 연결 태스크 조회 쿼리 수정 |
 
 ---
+
+## 3.5 담당자 수 제한
+
+- **최대 5명** (UI 레벨 + 저장 시 서버 레벨 검증)
+- 5명 선택 시 추가 입력창 비활성화 + 툴팁 "최대 5명까지 지정 가능합니다"
+- 추천값: 통상 3명 이하 사용 → 5명을 hard limit으로 설정
 
 ## 4. UI 설계 (ContactCombobox 멀티셀렉트)
 

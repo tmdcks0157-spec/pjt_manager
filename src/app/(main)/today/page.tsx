@@ -141,13 +141,14 @@ export default function TodayPage() {
   // CRM 연결 태스크 (오늘/초과 마감, 연락처 있는 것)
   const contactsMap = useMemo(() => Object.fromEntries(allContacts.map(c => [c.id, c])), [allContacts])
   const crmDueTasks = useMemo(() => activeTasks.filter(t => {
-    if (!t.contact_id || !t.due_date) return false
+    const ids = t.contact_ids?.length ? t.contact_ids : (t.contact_id ? [t.contact_id] : [])
+    if (ids.length === 0 || !t.due_date) return false
     const d = new Date(t.due_date); d.setHours(0, 0, 0, 0)
     return d <= today
   }), [activeTasks, today])
   // 연락처별로 그룹핑 (연락할 사람 목록)
   const crmContactIds = useMemo(() =>
-    [...new Set(crmDueTasks.map(t => t.contact_id!))],
+    [...new Set(crmDueTasks.flatMap(t => t.contact_ids?.length ? t.contact_ids : (t.contact_id ? [t.contact_id] : [])))],
     [crmDueTasks]
   )
 
@@ -526,7 +527,7 @@ export default function TodayPage() {
                   {crmContactIds.map(contactId => {
                     const contact = contactsMap[contactId]
                     if (!contact) return null
-                    const linkedTasks = crmDueTasks.filter(t => t.contact_id === contactId)
+                    const linkedTasks = crmDueTasks.filter(t => (t.contact_ids?.length ? t.contact_ids : (t.contact_id ? [t.contact_id] : [])).includes(contactId))
                     return (
                       <Link key={contactId} href={`/crm/contacts/${contactId}`}
                         className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">

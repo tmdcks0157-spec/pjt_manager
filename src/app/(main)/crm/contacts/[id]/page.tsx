@@ -71,7 +71,7 @@ export default function ContactDetailPage() {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
-        .eq('contact_id', id)
+        .contains('contact_ids', [id])
         .is('deleted_at', null)
         .eq('archived', false)
         .order('created_at', { ascending: false })

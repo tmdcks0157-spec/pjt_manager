@@ -25,8 +25,8 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
   const [dueDate, setDueDate]   = useState(task.due_date ? task.due_date.slice(0, 10) : '')
   const [tags, setTags]             = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput]     = useState('')
-  const [contactId, setContactId]     = useState<string>(task.contact_id ?? '')
-  const [assigneeName, setAssigneeName] = useState<string>(task.assignee_name ?? '')
+  const [contactIds, setContactIds]       = useState<string[]>(task.contact_ids?.length ? task.contact_ids : (task.contact_id ? [task.contact_id] : []))
+  const [assigneeNames, setAssigneeNames] = useState<string[]>(task.assignee_names?.length ? task.assignee_names : (task.assignee_name ? [task.assignee_name] : []))
   const [newItemText, setNewItemText] = useState('')
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemText, setEditingItemText] = useState('')
@@ -126,8 +126,10 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
       description, notes, priority, task_type: taskType,
       due_date:    dueDate ? new Date(dueDate).toISOString() : null,
       tags,
-      contact_id:    contactId || null,
-      assignee_name: contactId ? null : (assigneeName.trim() || null),
+      contact_ids:    contactIds,
+      assignee_names: assigneeNames,
+      contact_id:    contactIds[0] ?? null,
+      assignee_name: contactIds.length === 0 ? (assigneeNames[0] ?? null) : null,
     })
     onClose()
   }
@@ -234,9 +236,9 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500">담당자</p>
             <ContactCombobox
               contacts={contacts}
-              contactId={contactId}
-              assigneeName={assigneeName}
-              onChange={(cid, name) => { setContactId(cid); setAssigneeName(name) }}
+              contactIds={contactIds}
+              assigneeNames={assigneeNames}
+              onChange={(cids, names) => { setContactIds(cids); setAssigneeNames(names) }}
             />
           </div>
 
