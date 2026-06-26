@@ -18,9 +18,10 @@ interface Props {
   defaultValue?: string
   onChange: (value: string) => void
   placeholder?: string
+  borderless?: boolean
 }
 
-export default function MarkdownEditor({ defaultValue = '', onChange, placeholder }: Props) {
+export default function MarkdownEditor({ defaultValue = '', onChange, placeholder, borderless = false }: Props) {
   const [showTablePicker, setShowTablePicker] = useState(false)
   const [tableRows, setTableRows] = useState(3)
   const [tableCols, setTableCols] = useState(3)
@@ -56,16 +57,26 @@ export default function MarkdownEditor({ defaultValue = '', onChange, placeholde
       onChange((editor.storage as any).markdown.getMarkdown())
     },
     editorProps: {
-      attributes: { class: 'md-editor-content min-h-[200px] px-4 py-3 focus:outline-none' },
+      attributes: { class: `md-editor-content focus:outline-none ${borderless ? 'min-h-[300px] px-4 py-4' : 'min-h-[200px] px-4 py-3'}` },
     },
   })
 
   if (!editor) return null
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
+    <div className={cn(
+      'overflow-hidden',
+      borderless
+        ? 'bg-transparent'
+        : 'border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800'
+    )}>
       {/* 툴바 */}
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-gray-100 dark:border-gray-700 flex-wrap bg-gray-50 dark:bg-gray-800/50">
+      <div className={cn(
+        'flex items-center gap-0.5 px-2 py-1.5 border-b flex-wrap',
+        borderless
+          ? 'border-gray-100 dark:border-gray-800 bg-transparent'
+          : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+      )}>
         <ToolBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="굵게 (Ctrl+B)">
           <Bold size={13} />
         </ToolBtn>

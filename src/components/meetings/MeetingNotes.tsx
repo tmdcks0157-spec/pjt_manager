@@ -27,12 +27,13 @@ export default function MeetingNotes({ meeting, onUpdate }: Props) {
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">회의 노트</span>
         <span className="text-[10px] text-gray-300 dark:text-gray-600">자동저장</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         <MarkdownEditor
           key={meeting.id}
           defaultValue={meeting.notes ?? ''}
           onChange={handleChange}
           placeholder="회의 내용을 자유롭게 기록하세요..."
+          borderless
         />
       </div>
     </div>
