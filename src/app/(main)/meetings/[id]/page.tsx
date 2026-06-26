@@ -210,7 +210,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 오른쪽 — 액션 아이템 */}
-        <div className="w-72 shrink-0 overflow-hidden flex flex-col">
+        <div className="w-96 shrink-0 overflow-hidden flex flex-col">
           <ActionItemPanel
             meetingId={id}
             meeting={meeting}

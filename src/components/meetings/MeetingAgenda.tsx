@@ -43,14 +43,15 @@ export default function MeetingAgenda({ meeting, onUpdate }: Props) {
   }
 
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3 shrink-0">
-      <div className="flex items-center mb-1.5">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">안건</span>
+    <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-4 shrink-0">
+      <div className="flex items-center mb-3">
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">안건</span>
         <button
           onClick={() => { setAdding(true); setTimeout(() => inputRef.current?.focus(), 50) }}
-          className="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
-          <Plus size={13} />
+          <Plus size={14} />
+          <span>추가</span>
         </button>
       </div>
 
@@ -59,21 +60,18 @@ export default function MeetingAgenda({ meeting, onUpdate }: Props) {
           <div
             key={item.id}
             className={cn(
-              'group flex items-center gap-2.5 py-1.5',
+              'group flex items-center gap-2.5 py-2',
               idx < meeting.agenda.length - 1 && 'border-b border-gray-50 dark:border-gray-800/60'
             )}
           >
-            <button
-              onClick={() => handleToggle(item.id)}
-              className="shrink-0 mt-px"
-            >
+            <button onClick={() => handleToggle(item.id)} className="shrink-0 mt-px">
               {item.done
-                ? <CheckSquare size={14} className="text-green-500" />
-                : <Square size={14} className="text-gray-300 dark:text-gray-600 hover:text-gray-400" />}
+                ? <CheckSquare size={15} className="text-green-500" />
+                : <Square size={15} className="text-gray-300 dark:text-gray-600 hover:text-gray-400" />}
             </button>
             <span
               className={cn(
-                'flex-1 text-xs cursor-pointer select-none',
+                'flex-1 text-sm cursor-pointer select-none',
                 item.done
                   ? 'line-through text-gray-400 dark:text-gray-600'
                   : 'text-gray-700 dark:text-gray-300'
@@ -86,14 +84,14 @@ export default function MeetingAgenda({ meeting, onUpdate }: Props) {
               onClick={() => handleDelete(item.id)}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400"
             >
-              <X size={11} />
+              <X size={12} />
             </button>
           </div>
         ))}
 
         {adding && (
-          <div className="flex items-center gap-2.5 py-1.5">
-            <Square size={14} className="text-gray-300 dark:text-gray-600 shrink-0" />
+          <div className="flex items-center gap-2.5 py-2">
+            <Square size={15} className="text-gray-300 dark:text-gray-600 shrink-0" />
             <input
               ref={inputRef}
               value={newText}
@@ -103,16 +101,21 @@ export default function MeetingAgenda({ meeting, onUpdate }: Props) {
                 if (e.key === 'Escape') { setAdding(false); setNewText('') }
               }}
               onBlur={handleAdd}
-              placeholder="안건 입력..."
-              className="flex-1 text-xs bg-transparent text-gray-700 dark:text-gray-300
-                         placeholder:text-gray-300 dark:placeholder:text-gray-600
-                         focus:outline-none border-b border-blue-300 dark:border-blue-600"
+              placeholder="안건을 입력하세요..."
+              className="flex-1 text-sm bg-transparent text-gray-700 dark:text-gray-300
+                         placeholder:text-gray-400 dark:placeholder:text-gray-600
+                         focus:outline-none border-b-2 border-blue-400 dark:border-blue-500 pb-0.5"
             />
           </div>
         )}
 
         {meeting.agenda.length === 0 && !adding && (
-          <p className="text-[11px] text-gray-300 dark:text-gray-600 py-1">안건이 없습니다.</p>
+          <button
+            onClick={() => { setAdding(true); setTimeout(() => inputRef.current?.focus(), 50) }}
+            className="w-full text-left text-sm text-gray-300 dark:text-gray-600 py-2 hover:text-gray-400 dark:hover:text-gray-500 transition-colors"
+          >
+            + 안건을 추가하세요
+          </button>
         )}
       </div>
     </div>

@@ -157,6 +157,12 @@ export interface MeetingAttendee {
   created_at: string
 }
 
+export interface ActionItemChecklist {
+  id: string
+  text: string
+  done: boolean
+}
+
 export interface ActionItem {
   id: string
   meeting_id: string
@@ -167,6 +173,9 @@ export interface ActionItem {
   due_date: string | null
   status: 'open' | 'done'
   exported_task_id: string | null
+  priority: TaskPriority
+  tags: string[]
+  checklist: ActionItemChecklist[]
   created_at: string
   updated_at: string
 }

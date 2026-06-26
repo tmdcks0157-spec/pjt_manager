@@ -38,6 +38,7 @@ export default function MarkdownEditor({ defaultValue = '', onChange, placeholde
   }, [showTablePicker])
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       TaskList,

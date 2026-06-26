@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { CheckSquare, Square, ExternalLink, Check, X, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { CheckSquare, Square, Check, X, Plus, Send } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { requireUserId } from '@/lib/auth'
 import { cn } from '@/lib/utils'
-import type { ActionItem, Meeting } from '@/types'
+import { PRIORITY_META } from '@/lib/constants'
+import type { ActionItem, Meeting, TaskPriority, ActionItemChecklist } from '@/types'
+import ActionItemModal from './ActionItemModal'
 
 interface Props {
   meetingId: string
@@ -19,11 +21,13 @@ interface Props {
 export default function ActionItemPanel({ meetingId, meeting, actionItems, pendingFromPrev, projects }: Props) {
   const qc = useQueryClient()
   const [showCarryover, setShowCarryover] = useState(pendingFromPrev.length > 0)
-  const [exportPickerId, setExportPickerId] = useState<string | null>(null)
-  const [newText, setNewText] = useState('')
-  const [newAssignee, setNewAssignee] = useState('')
-  const [newDueDate, setNewDueDate] = useState('')
-  const [showForm, setShowForm] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<ActionItem | null>(null)
+  // 내보내기 모드
+  const [exportMode, setExportMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [exportProjectId, setExportProjectId] = useState(meeting.project_id ?? '')
+  const [exporting, setExporting] = useState(false)
 
   async function handleToggle(item: ActionItem) {
     const next = item.status === 'open' ? 'done' : 'open'
@@ -31,22 +35,34 @@ export default function ActionItemPanel({ meetingId, meeting, actionItems, pendi
     qc.invalidateQueries({ queryKey: ['meeting', meetingId] })
   }
 
-  async function handleAdd() {
-    const text = newText.trim()
-    if (!text) return
-    const userId = await requireUserId()
-    await supabase.from('action_items').insert({
-      meeting_id: meetingId,
-      user_id: userId,
-      text,
-      assignee_name: newAssignee.trim() || null,
-      due_date: newDueDate || null,
-    })
+  async function handleSave(data: {
+    text: string; assignee: string; dueDate: string
+    priority: TaskPriority; tags: string[]; checklist: ActionItemChecklist[]
+  }) {
+    if (editingItem) {
+      await supabase.from('action_items').update({
+        text: data.text,
+        assignee_name: data.assignee || null,
+        due_date: data.dueDate || null,
+        priority: data.priority,
+        tags: data.tags,
+        checklist: data.checklist,
+      }).eq('id', editingItem.id)
+      setEditingItem(null)
+    } else {
+      const userId = await requireUserId()
+      await supabase.from('action_items').insert({
+        meeting_id: meetingId,
+        user_id: userId,
+        text: data.text,
+        assignee_name: data.assignee || null,
+        due_date: data.dueDate || null,
+        priority: data.priority,
+        tags: data.tags,
+        checklist: data.checklist,
+      })
+    }
     qc.invalidateQueries({ queryKey: ['meeting', meetingId] })
-    setNewText('')
-    setNewAssignee('')
-    setNewDueDate('')
-    setShowForm(false)
   }
 
   async function handleDelete(id: string) {
@@ -57,57 +73,66 @@ export default function ActionItemPanel({ meetingId, meeting, actionItems, pendi
   async function handleCarryover() {
     const userId = await requireUserId()
     const copies = pendingFromPrev.map(a => ({
-      meeting_id: meetingId,
-      user_id: userId,
-      text: a.text,
-      assignee_name: a.assignee_name,
+      meeting_id: meetingId, user_id: userId,
+      text: a.text, assignee_name: a.assignee_name,
       assignee_contact_id: a.assignee_contact_id,
-      due_date: a.due_date,
-      status: 'open' as const,
+      due_date: a.due_date, status: 'open' as const,
     }))
     await supabase.from('action_items').insert(copies)
     qc.invalidateQueries({ queryKey: ['meeting', meetingId] })
     setShowCarryover(false)
   }
 
-  async function doExport(item: ActionItem, targetProjectId: string) {
+  // 선택한 액션아이템 → 칸반 태스크로 내보내기
+  async function handleBulkExport() {
+    if (!exportProjectId || selectedIds.size === 0) return
+    setExporting(true)
     const userId = await requireUserId()
     const { data: cols } = await supabase
-      .from('columns').select('id').eq('project_id', targetProjectId).order('order').limit(1)
+      .from('columns').select('id').eq('project_id', exportProjectId).order('order').limit(1)
     const columnId = cols?.[0]?.id
-    if (!columnId) return
+    if (!columnId) { setExporting(false); return }
 
-    const { data: task } = await supabase.from('tasks').insert({
-      title: item.text,
-      project_id: targetProjectId,
-      user_id: userId,
-      status: columnId,
-      priority: 'normal',
-      due_date: item.due_date ? new Date(item.due_date).toISOString() : null,
-      assignee_name: item.assignee_name,
-      description: '',
-      notes: '',
-      tags: [],
-      order: 0,
-      archived: false,
-    }).select().single()
-
-    if (task) {
-      await supabase.from('action_items').update({ exported_task_id: task.id }).eq('id', item.id)
-      qc.invalidateQueries({ queryKey: ['meeting', meetingId] })
+    const targets = actionItems.filter(a => selectedIds.has(a.id))
+    for (const item of targets) {
+      const { data: task } = await supabase.from('tasks').insert({
+        title: item.text,
+        project_id: exportProjectId,
+        user_id: userId,
+        status: columnId,
+        priority: item.priority ?? 'normal',
+        due_date: item.due_date ? new Date(item.due_date).toISOString() : null,
+        assignee_name: item.assignee_name,
+        tags: item.tags ?? [],
+        description: '', notes: '', order: 0, archived: false,
+      }).select().single()
+      if (task) {
+        await supabase.from('action_items').update({ exported_task_id: task.id }).eq('id', item.id)
+      }
     }
+    qc.invalidateQueries({ queryKey: ['meeting', meetingId] })
+    setExportMode(false)
+    setSelectedIds(new Set())
+    setExporting(false)
   }
 
-  function handleExportClick(item: ActionItem) {
-    if (meeting.project_id) {
-      doExport(item, meeting.project_id)
-    } else {
-      setExportPickerId(item.id)
-    }
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function enterExportMode() {
+    const preselect = new Set(actionItems.filter(a => !a.exported_task_id).map(a => a.id))
+    setSelectedIds(preselect)
+    setExportMode(true)
   }
 
   const openItems = actionItems.filter(a => a.status === 'open')
   const doneItems = actionItems.filter(a => a.status === 'done')
+  const exportableCount = actionItems.filter(a => !a.exported_task_id).length
 
   return (
     <div className="flex flex-col h-full">
@@ -121,205 +146,205 @@ export default function ActionItemPanel({ meetingId, meeting, actionItems, pendi
             </span>
           )}
         </span>
-        <button
-          onClick={() => setShowForm(f => !f)}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-        >
-          <Plus size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          {!exportMode && exportableCount > 0 && (
+            <button
+              onClick={enterExportMode}
+              title="칸반보드로 내보내기"
+              className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-400 hover:text-blue-500
+                         hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+            >
+              <Send size={11} />
+              내보내기
+            </button>
+          )}
+          {!exportMode && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-400 hover:text-gray-600
+                         dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+            >
+              <Plus size={12} />
+              추가
+            </button>
+          )}
+          {exportMode && (
+            <button
+              onClick={() => { setExportMode(false); setSelectedIds(new Set()) }}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+            >
+              취소
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {/* 이전 회의 이월 배너 */}
-        {showCarryover && pendingFromPrev.length > 0 && (
-          <div className="mx-3 mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
-            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-              이전 회의 미완료 {pendingFromPrev.length}건
-            </p>
-            <div className="mt-1.5 space-y-0.5">
-              {pendingFromPrev.slice(0, 3).map(a => (
-                <p key={a.id} className="text-[11px] text-amber-600 dark:text-amber-500 truncate">
-                  · {a.text}
-                </p>
-              ))}
-              {pendingFromPrev.length > 3 && (
-                <p className="text-[11px] text-amber-500">외 {pendingFromPrev.length - 3}건</p>
-              )}
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 px-3 pt-3 space-y-2">
+          {/* 이전 회의 이월 배너 */}
+          {showCarryover && pendingFromPrev.length > 0 && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                이전 회의 미완료 {pendingFromPrev.length}건
+              </p>
+              <div className="mt-1.5 space-y-0.5">
+                {pendingFromPrev.slice(0, 3).map(a => (
+                  <p key={a.id} className="text-[11px] text-amber-600 dark:text-amber-500 truncate">· {a.text}</p>
+                ))}
+                {pendingFromPrev.length > 3 && <p className="text-[11px] text-amber-500">외 {pendingFromPrev.length - 3}건</p>}
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleCarryover} className="px-2 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700">이월하기</button>
+                <button onClick={() => setShowCarryover(false)} className="text-[11px] text-amber-500 hover:text-amber-600">무시</button>
+              </div>
             </div>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={handleCarryover}
-                className="px-2 py-1 bg-amber-600 text-white rounded text-[11px] hover:bg-amber-700"
-              >
-                이월하기
-              </button>
-              <button
-                onClick={() => setShowCarryover(false)}
-                className="text-[11px] text-amber-500 hover:text-amber-600"
-              >
-                무시
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* 추가 폼 */}
-        {showForm && (
-          <div className="mx-3 mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-            <input
-              autoFocus
-              value={newText}
-              onChange={e => setNewText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setShowForm(false) }}
-              placeholder="액션 아이템..."
-              className="w-full text-xs bg-transparent text-gray-700 dark:text-gray-300
-                         placeholder:text-gray-300 dark:placeholder:text-gray-600
-                         focus:outline-none mb-2"
-            />
-            <div className="flex gap-1.5">
-              <input
-                value={newAssignee}
-                onChange={e => setNewAssignee(e.target.value)}
-                placeholder="담당자"
-                className="flex-1 text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-gray-600
-                           bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300
-                           placeholder:text-gray-300 focus:outline-none"
-              />
-              <input
-                type="date"
-                value={newDueDate}
-                onChange={e => setNewDueDate(e.target.value)}
-                className="text-[11px] px-2 py-1 rounded border border-gray-200 dark:border-gray-600
-                           bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300
-                           focus:outline-none"
-              />
-            </div>
-            <div className="flex gap-2 mt-2">
-              <button onClick={handleAdd} className="px-2 py-1 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded text-[11px]">추가</button>
-              <button onClick={() => setShowForm(false)} className="text-[11px] text-gray-400">취소</button>
-            </div>
-          </div>
-        )}
-
-        {/* 미완료 아이템 */}
-        {openItems.length === 0 && !showForm && (
-          <p className="text-[11px] text-gray-300 dark:text-gray-600 text-center mt-6">
-            액션 아이템이 없습니다.
-          </p>
-        )}
-
-        <div className="px-3 mt-3 space-y-0">
+          {/* 미완료 아이템 */}
+          {openItems.length === 0 && (
+            <p className="text-[11px] text-gray-300 dark:text-gray-600 text-center py-4">액션 아이템이 없습니다.</p>
+          )}
           {openItems.map(item => (
-            <ActionItemRow
-              key={item.id}
-              item={item}
-              exportPickerId={exportPickerId}
-              projects={projects}
+            <ActionItemRow key={item.id} item={item}
+              exportMode={exportMode} selected={selectedIds.has(item.id)}
+              onToggleSelect={() => toggleSelect(item.id)}
               onToggle={() => handleToggle(item)}
               onDelete={() => handleDelete(item.id)}
-              onExportClick={() => handleExportClick(item)}
-              onExportWithProject={(pid) => { setExportPickerId(null); doExport(item, pid) }}
-              onClosePicker={() => setExportPickerId(null)}
-            />
+              onEdit={() => setEditingItem(item)} />
           ))}
+
+          {/* 완료 아이템 */}
+          {doneItems.length > 0 && (
+            <div className="pt-2">
+              <p className="text-[10px] text-gray-400 font-medium mb-1.5">완료</p>
+              <div className="space-y-2">
+                {doneItems.map(item => (
+                  <ActionItemRow key={item.id} item={item}
+                    exportMode={exportMode} selected={selectedIds.has(item.id)}
+                    onToggleSelect={() => toggleSelect(item.id)}
+                    onToggle={() => handleToggle(item)}
+                    onDelete={() => handleDelete(item.id)}
+                    onEdit={() => setEditingItem(item)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 완료 아이템 */}
-        {doneItems.length > 0 && (
-          <div className="px-3 mt-4">
-            <p className="text-[10px] text-gray-400 font-medium mb-1.5">완료</p>
-            <div className="space-y-0">
-              {doneItems.map(item => (
-                <ActionItemRow
-                  key={item.id}
-                  item={item}
-                  exportPickerId={exportPickerId}
-                  projects={projects}
-                  onToggle={() => handleToggle(item)}
-                  onDelete={() => handleDelete(item.id)}
-                  onExportClick={() => handleExportClick(item)}
-                  onExportWithProject={(pid) => { setExportPickerId(null); doExport(item, pid) }}
-                  onClosePicker={() => setExportPickerId(null)}
-                />
-              ))}
-            </div>
+        {/* 내보내기 확인 패널 */}
+        {exportMode && (
+          <div className="px-3 pb-3 pt-2 shrink-0 border-t border-gray-100 dark:border-gray-800 space-y-2">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+              {selectedIds.size}개 선택 → 칸반보드로 내보내기
+            </p>
+            <select
+              value={exportProjectId}
+              onChange={e => setExportProjectId(e.target.value)}
+              className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700
+                         bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
+            >
+              <option value="">프로젝트 선택...</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <button
+              onClick={handleBulkExport}
+              disabled={!exportProjectId || selectedIds.size === 0 || exporting}
+              className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium
+                         disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Send size={11} />
+              {exporting ? '내보내는 중...' : `${selectedIds.size}개 내보내기`}
+            </button>
           </div>
         )}
       </div>
+
+      {showModal && (
+        <ActionItemModal onSave={handleSave} onClose={() => setShowModal(false)} />
+      )}
+      {editingItem && (
+        <ActionItemModal
+          initialData={editingItem}
+          onSave={handleSave}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </div>
   )
 }
 
 interface RowProps {
   item: ActionItem
-  exportPickerId: string | null
-  projects: { id: string; name: string; color: string }[]
+  exportMode: boolean
+  selected: boolean
+  onToggleSelect: () => void
   onToggle: () => void
   onDelete: () => void
-  onExportClick: () => void
-  onExportWithProject: (projectId: string) => void
-  onClosePicker: () => void
+  onEdit: () => void
 }
 
-function ActionItemRow({ item, exportPickerId, projects, onToggle, onDelete, onExportClick, onExportWithProject, onClosePicker }: RowProps) {
+function ActionItemRow({ item, exportMode, selected, onToggleSelect, onToggle, onDelete, onEdit }: RowProps) {
+  const priority = PRIORITY_META[item.priority ?? 'normal']
   return (
-    <div className="group flex items-start gap-2 py-2 border-b border-gray-100 dark:border-gray-800">
-      <button onClick={onToggle} className="mt-0.5 shrink-0">
-        {item.status === 'done'
-          ? <CheckSquare size={13} className="text-green-500" />
-          : <Square size={13} className="text-gray-400" />}
-      </button>
+    <div
+      onClick={!exportMode ? onEdit : undefined}
+      className={cn(
+        'group flex items-start gap-2 p-2 rounded-lg border transition-colors',
+        !exportMode && 'cursor-pointer',
+        exportMode && selected
+          ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20'
+          : 'border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+      )}
+    >
+      {/* 내보내기 모드: 체크박스 / 일반 모드: 완료 토글 */}
+      {exportMode ? (
+        <button onClick={e => { e.stopPropagation(); onToggleSelect() }} className="mt-0.5 shrink-0">
+          {selected
+            ? <CheckSquare size={14} className="text-blue-500" />
+            : <Square size={14} className="text-gray-300 dark:text-gray-600" />}
+        </button>
+      ) : (
+        <button onClick={e => { e.stopPropagation(); onToggle() }} className="mt-0.5 shrink-0">
+          {item.status === 'done'
+            ? <CheckSquare size={14} className="text-green-500" />
+            : <Square size={14} className="text-gray-400" />}
+        </button>
+      )}
 
       <div className="flex-1 min-w-0">
-        <p className={cn('text-xs text-gray-700 dark:text-gray-300', item.status === 'done' && 'line-through text-gray-400 dark:text-gray-600')}>
+        <p className={cn('text-xs text-gray-700 dark:text-gray-300 leading-snug',
+          item.status === 'done' && !exportMode && 'line-through text-gray-400 dark:text-gray-600')}>
           {item.text}
         </p>
-        {(item.assignee_name || item.due_date) && (
-          <p className="text-[10px] text-gray-400 mt-0.5">
-            {[item.assignee_name, item.due_date].filter(Boolean).join(' · ')}
-          </p>
-        )}
-      </div>
-
-      <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!item.exported_task_id && (
-          <div className="relative">
-            <button onClick={onExportClick} title="태스크로 내보내기"
-              className="text-gray-300 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-400">
-              <ExternalLink size={11} />
-            </button>
-
-            {exportPickerId === item.id && (
-              <div className="absolute right-0 top-5 z-20 w-44 bg-white dark:bg-gray-800
-                              border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1">
-                <p className="px-3 py-1.5 text-[10px] text-gray-400 font-medium border-b border-gray-100 dark:border-gray-700">
-                  프로젝트 선택
-                </p>
-                {projects.map(p => (
-                  <button key={p.id} onMouseDown={() => onExportWithProject(p.id)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs
-                               text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-left">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                    <span className="truncate">{p.name}</span>
-                  </button>
-                ))}
-                <button onMouseDown={onClosePicker}
-                  className="w-full px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-left border-t border-gray-100 dark:border-gray-700">
-                  취소
-                </button>
-              </div>
-            )}
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {item.priority && item.priority !== 'normal' && (
+            <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', priority.className)}>
+              {priority.label}
+            </span>
+          )}
+          {item.assignee_name && <span className="text-[10px] text-gray-400">{item.assignee_name}</span>}
+          {item.due_date && <span className="text-[10px] text-gray-400">{item.due_date}</span>}
+          {item.exported_task_id && (
+            <span className="text-[10px] text-green-500 flex items-center gap-0.5">
+              <Check size={9} />칸반 등록
+            </span>
+          )}
+        </div>
+        {(item.tags ?? []).length > 0 && (
+          <div className="flex gap-1 mt-1 flex-wrap">
+            {item.tags.map(t => (
+              <span key={t} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500">{t}</span>
+            ))}
           </div>
         )}
-        {item.exported_task_id && (
-          <span title="태스크로 내보냄" className="text-green-400 dark:text-green-500">
-            <Check size={11} />
-          </span>
-        )}
-        <button onClick={onDelete} className="text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400">
+      </div>
+
+      {!exportMode && (
+        <button onClick={e => { e.stopPropagation(); onDelete() }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 mt-0.5">
           <X size={11} />
         </button>
-      </div>
+      )}
     </div>
   )
 }
