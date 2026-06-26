@@ -55,7 +55,7 @@ export default function MeetingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('id, title, date, duration_minutes, status, project_id, archived, deleted_at, action_items(id, status)')
+        .select('id, title, date, duration_minutes, status, project_id, archived, deleted_at')
         .is('deleted_at', null)
         .order('date', { ascending: false })
       if (error) throw error

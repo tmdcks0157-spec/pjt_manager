@@ -26,7 +26,6 @@ const STATUS_BADGE: Record<Meeting['status'], { label: string; className: string
 export default function MeetingListItem({ meeting, projects, onArchive, onDelete, onProjectChange }: Props) {
   const router = useRouter()
   const badge = STATUS_BADGE[meeting.status]
-  const openCount = (meeting.action_items ?? []).filter(a => a.status === 'open').length
   const [showProjectPicker, setShowProjectPicker] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -53,9 +52,6 @@ export default function MeetingListItem({ meeting, projects, onArchive, onDelete
           <span>{format(new Date(meeting.date), 'HH:mm')}</span>
           {meeting.duration_minutes != null && (
             <span>· {meeting.duration_minutes}분</span>
-          )}
-          {openCount > 0 && (
-            <span className="text-amber-500">· 미완료 {openCount}건</span>
           )}
         </span>
 
