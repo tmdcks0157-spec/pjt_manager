@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/favicon.png', sizes: '32x32', type: 'image/png' }],
-    apple: [{ url: '/api/apple-icon', sizes: '512x512', type: 'image/png' }],
+    apple: [{ url: '/api/apple-icon?v=2', sizes: '512x512', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/api/apple-icon" />
+        <link rel="apple-touch-icon" href="/api/apple-icon?v=2" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">

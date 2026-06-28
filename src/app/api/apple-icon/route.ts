@@ -6,7 +6,7 @@ export async function GET() {
   return new NextResponse(ICON, {
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'public, max-age=86400',
     },
   })
 }
