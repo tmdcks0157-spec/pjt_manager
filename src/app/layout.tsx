@@ -9,6 +9,12 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'My Project Manager',
   description: '나만의 프로젝트 관리 도구',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'My PM',
+  },
 }
 
 // FOUC 방지: React 하이드레이션 전에 실행되어 html.dark 클래스를 미리 적용
