@@ -368,7 +368,7 @@ export default function TaskModal({ task, onClose, onUpdate, onRestore }: {
                     </span>
                   )}
                   <button onClick={() => deleteItemMutation.mutate(item.id)}
-                    className="opacity-0 group-hover/item:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-all shrink-0">
+                    className="p-0.5 text-gray-300 hover:text-red-400 transition-all shrink-0">
                     <X size={12} />
                   </button>
                 </div>

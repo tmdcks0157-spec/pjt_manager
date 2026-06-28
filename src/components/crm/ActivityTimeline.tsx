@@ -43,7 +43,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
           </div>
           <button
             onClick={() => deleteActivity.mutate({ id: activity.id, contact_id: activity.contact_id })}
-            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all shrink-0"
+            className="text-gray-300 hover:text-red-500 transition-all shrink-0"
           >
             <Trash2 size={13} />
           </button>

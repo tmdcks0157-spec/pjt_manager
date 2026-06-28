@@ -621,7 +621,7 @@ export default function CalendarPage() {
             {canAddTask && (
               <button
                 onClick={e => { e.stopPropagation(); setQuickTaskDate(key) }}
-                className="opacity-0 group-hover/cell:opacity-100 transition-opacity p-0.5 text-gray-300 hover:text-gray-600 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded shrink-0">
+                className="transition-opacity p-0.5 text-gray-300 hover:text-gray-600 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded shrink-0">
                 <Plus size={12} />
               </button>
             )}
@@ -632,7 +632,7 @@ export default function CalendarPage() {
             {canAddTask && (
               <button
                 onClick={e => { e.stopPropagation(); setQuickTaskDate(key) }}
-                className="opacity-0 group-hover/cell:opacity-100 transition-opacity p-0.5 text-gray-300 hover:text-gray-600 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-1 shrink-0">
+                className="transition-opacity p-0.5 text-gray-300 hover:text-gray-600 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded mr-1 shrink-0">
                 <Plus size={12} />
               </button>
             )}

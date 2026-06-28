@@ -234,7 +234,7 @@ export default function CreateTaskModal({ projects, columns, defaultProjectId, o
                   <span className="flex-1 text-sm text-gray-700">{item}</span>
                   <button
                     onClick={() => setChecklistItems(p => p.filter((_, idx) => idx !== i))}
-                    className="opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-400 transition-all"
+                    className="text-gray-300 hover:text-red-400 transition-all"
                   >
                     <X size={13} />
                   </button>

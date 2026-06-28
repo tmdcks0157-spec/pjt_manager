@@ -341,7 +341,7 @@ function ActionItemRow({ item, exportMode, selected, onToggleSelect, onToggle, o
 
       {!exportMode && (
         <button onClick={e => { e.stopPropagation(); onDelete() }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 mt-0.5">
+          className="transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 mt-0.5">
           <X size={11} />
         </button>
       )}

@@ -82,7 +82,7 @@ export default function MeetingAgenda({ meeting, onUpdate }: Props) {
             </span>
             <button
               onClick={() => handleDelete(item.id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400"
+              className="transition-opacity text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400"
             >
               <X size={12} />
             </button>

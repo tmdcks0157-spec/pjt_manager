@@ -261,7 +261,7 @@ export default function ContactDetailPage() {
                     {task.due_date && (
                       <span className="text-[10px] text-gray-400 shrink-0">{task.due_date.slice(0, 10)}</span>
                     )}
-                    <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0 transition-opacity" />
                   </div>
                 )
               })}

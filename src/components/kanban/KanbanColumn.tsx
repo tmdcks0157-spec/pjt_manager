@@ -79,7 +79,7 @@ export default function KanbanColumn({ column, tasks, columns, projects, current
             {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
           </button>
           <button onClick={() => onDeleteColumn(column)}
-            className="p-1 text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 opacity-0 group-hover/header:opacity-100 transition-all">
+            className="p-1 text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 transition-all">
             <X size={14} />
           </button>
         </div>

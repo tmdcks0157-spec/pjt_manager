@@ -681,7 +681,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         onClick={() => setSelectedTask(task)}
                         className="w-72 shrink-0 bg-white dark:bg-gray-800 rounded-lg px-3 py-2.5 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-60 hover:opacity-90 hover:border-gray-400 dark:hover:border-gray-500 transition-all cursor-pointer">
                         <p className="text-sm text-gray-500 dark:text-gray-400 line-through truncate">{task.title}</p>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                        <div className="flex items-center gap-1 transition-all shrink-0">
                           <button onClick={e => { e.stopPropagation(); updateTaskMutation.mutate({ taskId: task.id, body: { archived: false } }) }}
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">
                             <ArchiveRestore size={12} />
@@ -711,7 +711,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     {trashedTasks.map(task => (
                       <div key={task.id} className="w-72 shrink-0 bg-white dark:bg-gray-800 rounded-lg px-3 py-2.5 border border-gray-200 dark:border-gray-700 group flex items-center justify-between gap-2 opacity-50 hover:opacity-70 transition-opacity">
                         <p className="text-sm text-gray-400 dark:text-gray-500 line-through truncate">{task.title}</p>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                        <div className="flex items-center gap-1 transition-all shrink-0">
                           <button onClick={() => updateTaskMutation.mutate({ taskId: task.id, body: { deleted_at: null } })}
                             className="p-0.5 text-gray-400 hover:text-green-500 transition-colors" title="복원">
                             <RotateCcw size={13} />

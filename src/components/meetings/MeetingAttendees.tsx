@@ -89,7 +89,7 @@ export default function MeetingAttendees({ meeting }: Props) {
               </div>
               <button
                 onClick={() => removeAttendee(a.id)}
-                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity
+                className="shrink-0 transition-opacity
                            text-gray-300 hover:text-red-400 dark:text-gray-600 dark:hover:text-red-400 ml-auto"
               >
                 <X size={12} />

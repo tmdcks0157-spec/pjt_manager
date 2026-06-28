@@ -465,7 +465,7 @@ export default function IssuesPage({ params }: { params: Promise<{ id: string }>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                  <div className="flex items-center gap-0.5 transition-all shrink-0">
                     <button onClick={() => openEdit(post)}
                       className="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                       title="수정">

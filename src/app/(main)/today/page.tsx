@@ -790,7 +790,7 @@ export default function TodayPage() {
                             <button
                               onClick={() => closeIssueMutation.mutate({ id: post.id, status: 'open' })}
                               title="다시 열기"
-                              className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-blue-500 transition-all"
+                              className="text-gray-300 hover:text-blue-500 transition-all"
                             >
                               <RotateCcw size={11} />
                             </button>

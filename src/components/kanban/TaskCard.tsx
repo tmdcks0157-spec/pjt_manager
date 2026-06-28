@@ -131,7 +131,7 @@ export default function TaskCard({ task, columns, projects, currentProjectId, on
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); setShowActionModal(true) }}
-              className="p-0.5 text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+              className="p-0.5 text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-400 transition-colors shrink-0"
               title="더 보기"
             >
               <MoreHorizontal size={15} />

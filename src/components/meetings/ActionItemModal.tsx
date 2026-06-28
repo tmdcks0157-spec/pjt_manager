@@ -192,7 +192,7 @@ export default function ActionItemModal({ initialData, onSave, onClose }: Props)
                       : <Square size={14} className="text-gray-400" />}
                   </button>
                   <span className={cn('flex-1 text-sm', c.done && 'line-through text-gray-400')}>{c.text}</span>
-                  <button onClick={() => removeCheck(c.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400">
+                  <button onClick={() => removeCheck(c.id)} className="text-gray-300 hover:text-red-400">
                     <X size={11} />
                   </button>
                 </div>

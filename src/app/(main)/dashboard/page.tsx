@@ -290,60 +290,8 @@ export default function DashboardPage() {
     return (
       <div
         onClick={() => !isArchived && router.push(`/projects/${project.id}`)}
-        className={`p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl transition-all group relative ${isArchived ? 'opacity-70 cursor-default' : 'hover:shadow-md cursor-pointer'}`}
+        className={`p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl transition-all ${isArchived ? 'opacity-70 cursor-default' : 'hover:shadow-md cursor-pointer'}`}
       >
-        <div className="absolute top-4 right-4 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-          {!isArchived && (
-            <button
-              onClick={e => { e.stopPropagation(); setEditingProject(project) }}
-              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
-              title="수정"
-            >
-              <Pencil size={14} />
-            </button>
-          )}
-          {!isArchived ? (
-            <button
-              onClick={e => {
-                e.stopPropagation()
-                openConfirm({
-                  title: '프로젝트 보관',
-                  message: `"${project.name}" 프로젝트를 보관하시겠어요?\n보관된 프로젝트는 하단에서 확인할 수 있습니다.`,
-                  confirmText: '보관',
-                  onConfirm: () => archiveMutation.mutate(project.id),
-                })
-              }}
-              className="p-1 text-gray-400 hover:text-amber-500 transition-colors"
-              title="보관"
-            >
-              <Archive size={14} />
-            </button>
-          ) : (
-            <button
-              onClick={e => { e.stopPropagation(); unarchiveMutation.mutate(project.id) }}
-              className="p-1 text-gray-400 hover:text-green-500 transition-colors"
-              title="보관 해제"
-            >
-              <ArchiveRestore size={14} />
-            </button>
-          )}
-          <button
-            onClick={e => {
-              e.stopPropagation()
-              openConfirm({
-                title: '휴지통으로 이동',
-                message: `"${project.name}" 프로젝트를 휴지통으로 이동하시겠어요?`,
-                confirmText: '이동',
-                onConfirm: () => softDeleteMutation.mutate(project.id),
-              })
-            }}
-            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-            title="휴지통으로 이동"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-
         <div className="flex items-center gap-2 mb-3">
           <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
           {isArchived && (
@@ -354,8 +302,59 @@ export default function DashboardPage() {
               <Siren size={10} />긴급 {urgent}
             </span>
           )}
+          <div className="ml-auto flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+            {!isArchived && (
+              <button
+                onClick={e => { e.stopPropagation(); setEditingProject(project) }}
+                className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                title="수정"
+              >
+                <Pencil size={14} />
+              </button>
+            )}
+            {!isArchived ? (
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  openConfirm({
+                    title: '프로젝트 보관',
+                    message: `"${project.name}" 프로젝트를 보관하시겠어요?\n보관된 프로젝트는 하단에서 확인할 수 있습니다.`,
+                    confirmText: '보관',
+                    onConfirm: () => archiveMutation.mutate(project.id),
+                  })
+                }}
+                className="p-1 text-gray-400 hover:text-amber-500 transition-colors"
+                title="보관"
+              >
+                <Archive size={14} />
+              </button>
+            ) : (
+              <button
+                onClick={e => { e.stopPropagation(); unarchiveMutation.mutate(project.id) }}
+                className="p-1 text-gray-400 hover:text-green-500 transition-colors"
+                title="보관 해제"
+              >
+                <ArchiveRestore size={14} />
+              </button>
+            )}
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                openConfirm({
+                  title: '휴지통으로 이동',
+                  message: `"${project.name}" 프로젝트를 휴지통으로 이동하시겠어요?`,
+                  confirmText: '이동',
+                  onConfirm: () => softDeleteMutation.mutate(project.id),
+                })
+              }}
+              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+              title="휴지통으로 이동"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
-        <h3 className="font-semibold text-sm mb-1 truncate pr-12 dark:text-gray-100">{project.name}</h3>
+        <h3 className="font-semibold text-sm mb-1 truncate dark:text-gray-100">{project.name}</h3>
         {project.description && (
           <p className="text-xs text-gray-400 dark:text-gray-500 truncate mb-3">{project.description}</p>
         )}

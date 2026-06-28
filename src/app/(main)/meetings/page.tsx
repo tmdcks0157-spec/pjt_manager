@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, ChevronDown } from 'lucide-react'
@@ -55,13 +55,28 @@ export default function MeetingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('meetings')
-        .select('id, title, date, duration_minutes, status, project_id, archived, deleted_at')
+        .select('id, title, date, duration_minutes, status, project_id, archived, deleted_at, created_at')
         .is('deleted_at', null)
         .order('date', { ascending: false })
       if (error) throw error
       return data ?? []
     },
   })
+
+  // 기본 제목인 채로 10분 이상 지난 회의는 고스트 데이터로 간주해 자동 삭제
+  useEffect(() => {
+    if (!rawMeetings.length) return
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000)
+    const ghosts = rawMeetings.filter(
+      m => m.title === '제목 없는 회의' && new Date(m.created_at) < cutoff
+    )
+    if (!ghosts.length) return
+    const ids = ghosts.map(m => m.id)
+    supabase.from('meetings')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', ids)
+      .then(() => qc.invalidateQueries({ queryKey: ['meetings'] }))
+  }, [rawMeetings])
 
   const { data: projects = [] } = useQuery<ProjectSlim[]>({
     queryKey: ['projects-slim'],
