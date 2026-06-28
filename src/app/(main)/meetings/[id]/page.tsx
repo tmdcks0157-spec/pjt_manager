@@ -158,7 +158,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
       {/* 3열 본문 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 왼쪽 — 미니캘린더 + 기본 정보 */}
-        <div className="w-56 shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-4 space-y-4">
+        <div className="w-44 lg:w-56 shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-4 space-y-4">
           <MeetingMiniCalendar
             meetings={allMeetings}
             selectedDate={meeting.date.slice(0, 10)}
@@ -210,7 +210,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 오른쪽 — 액션 아이템 */}
-        <div className="w-96 shrink-0 overflow-hidden flex flex-col">
+        <div className="w-64 lg:w-96 shrink-0 overflow-hidden flex flex-col">
           <ActionItemPanel
             meetingId={id}
             meeting={meeting}

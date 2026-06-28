@@ -864,7 +864,7 @@ export default function OverviewPage() {
 
         {/* ── 오른쪽: 디테일 패널 ── */}
         {hasPanel && (
-          <div className="w-[540px] shrink-0">
+          <div className="w-[380px] lg:w-[540px] shrink-0">
             <DetailPanel />
           </div>
         )}
