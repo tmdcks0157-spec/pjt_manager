@@ -48,14 +48,18 @@ interface SearchResult {
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { user, logout, init, isInitialized } = useAuthStore()
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (mounted && !user) router.replace('/login')
-  }, [mounted, user])
+    if (mounted) init()
+  }, [mounted])
+
+  useEffect(() => {
+    if (isInitialized && !user) router.replace('/login')
+  }, [isInitialized, user])
 
   // ── 탭 타이틀 배지 ──
   const { data: overdueCount = 0 } = useQuery({
