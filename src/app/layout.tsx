@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'My Project Manager',
   description: '나만의 프로젝트 관리 도구',
   manifest: '/manifest.webmanifest',
+  icons: {
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
